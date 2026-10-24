@@ -68,6 +68,19 @@ assigned first; column pairs from the word list
 (`column: machine.serial_no = asset.code`) count as the strongest automatic
 evidence.
 
+### Time-series columns
+
+Measurements are matched like tables, and tags, fields and the time column
+like any other column; the scores are unchanged. InfluxDB calls its time
+column `time`, so a word-list rule (`time = recorded_at`) is usually needed.
+Nothing is forced: a measurement without a suitable table has no place yet.
+The column grid marks each time-series column with its role (**time**,
+**tag**, **field**). The type fit adds three things: nanosecond times into
+a relational time type are potential information loss, an unknown field type
+requires conversion, and a field with conflicting types is potential
+information loss. A tag that becomes a field (or the reverse) is noted on
+the column. See [time series](time-series.md#matching).
+
 ## 5. Reasons and confidence
 
 Every decision keeps its reason, shown on the Matching screen, in the report

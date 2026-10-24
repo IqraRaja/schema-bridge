@@ -7,8 +7,9 @@
 
 use crate::checks::{Finding, Severity, count_by_severity};
 use crate::export::{all_findings, origin_label};
+use crate::influx::retention_summary;
 use crate::matching::{ColumnStatus, MatchKind, Review};
-use crate::model::table_name;
+use crate::model::{Schema, TimeSeriesStats, table_name};
 use crate::types::Fit;
 use crate::workspace::{Analysis, Side, Workspace, grouped, system_name};
 
@@ -66,6 +67,8 @@ pub struct Unresolved {
 pub struct Summary {
     pub source: String,
     pub target: String,
+    /// What the source's objects are called: "tables" or "measurements".
+    pub source_noun: &'static str,
     pub tables: TableCounts,
     pub columns: ColumnCounts,
     /// Findings per origin ("Workshop", "Catalogue", "Fitting them
@@ -270,6 +273,11 @@ pub fn summary(ws: &Workspace, analysis: Option<&Analysis>) -> Summary {
     Summary {
         source: ws.source.name.clone(),
         target: ws.target.name.clone(),
+        source_noun: ws
+            .source
+            .schema
+            .as_ref()
+            .map_or("tables", |x| x.object_noun()),
         tables,
         columns,
         problems,
@@ -341,12 +349,13 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
     // Summary.
     out.push(heading(2, "Summary"));
     if analysis.is_some() {
+        let source_noun = s.source_noun;
         let t = s.tables;
         let c = s.columns;
         out.push(table(
             &["Tables", "Count"],
             vec![
-                vec!["Source tables".into(), t.total.to_string()],
+                vec![format!("Source {}", source_noun), t.total.to_string()],
                 vec!["Matched to a target table".into(), t.matched.to_string()],
                 vec!["Uncertain (please review)".into(), t.uncertain.to_string()],
                 vec!["Changed by hand".into(), t.manual.to_string()],
@@ -442,6 +451,47 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
             ],
         ],
     });
+    let schemas = [&ws.source.schema, &ws.target.schema];
+    if schemas
+        .iter()
+        .any(|x| x.as_ref().is_some_and(Schema::is_time_series))
+    {
+        let ts = |i: usize, f: fn(&TimeSeriesStats) -> Option<i64>| {
+            schemas[i]
+                .as_ref()
+                .filter(|x| x.is_time_series())
+                .and_then(|x| f(&x.time_series_stats()))
+                .map_or("–".to_string(), grouped)
+        };
+        let retention = |i: usize| {
+            schemas[i]
+                .as_ref()
+                .and_then(retention_summary)
+                .unwrap_or_else(|| "–".to_string())
+        };
+        out.push(Block::Table {
+            head: vec!["Time series".into(), sn.clone(), tn.clone()],
+            rows: vec![
+                vec![
+                    "Measurements".into(),
+                    ts(0, |s| Some(s.measurements as i64)),
+                    ts(1, |s| Some(s.measurements as i64)),
+                ],
+                vec![
+                    "Tags".into(),
+                    ts(0, |s| Some(s.tags as i64)),
+                    ts(1, |s| Some(s.tags as i64)),
+                ],
+                vec![
+                    "Fields".into(),
+                    ts(0, |s| Some(s.fields as i64)),
+                    ts(1, |s| Some(s.fields as i64)),
+                ],
+                vec!["Series".into(), ts(0, |s| s.series), ts(1, |s| s.series)],
+                vec!["Retention".into(), retention(0), retention(1)],
+            ],
+        });
+    }
 
     // Unresolved items and risks.
     out.push(heading(2, "Unresolved items"));
@@ -726,16 +776,28 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
         order,
         "No table goes into the target yet.",
     );
-    step(
-        &mut out,
-        5,
-        "Run a test load with the draft SQL".into(),
-        vec![format!(
-            "The draft below has {} TODO marker(s). Run it only on a test copy, inside its transaction.",
-            plan.todos
-        )],
-        "",
-    );
+    if ws.sql_available() {
+        step(
+            &mut out,
+            5,
+            "Run a test load with the draft SQL".into(),
+            vec![format!(
+                "The draft below has {} TODO marker(s). Run it only on a test copy, inside its transaction.",
+                plan.todos
+            )],
+            "",
+        );
+    } else {
+        step(
+            &mut out,
+            5,
+            "Run a test load with the target's own tools".into(),
+            vec![format!(
+                "{tn} is a time-series database. Schema Bridge drafts no SQL and no line protocol for it; write a test load with its own tools, using the mapping."
+            )],
+            "",
+        );
+    }
     let mut checks = vec![
         "Row counts: every source table and its target table have the same number of rows (minus rows filtered on purpose).".to_string(),
         format!("Links: every copied link points to a real record in {tn}."),
@@ -752,12 +814,19 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
 
     // Draft SQL.
     out.push(heading(2, "Draft SQL"));
-    out.push(Block::Note(
+    if !ws.sql_available() {
+        out.push(Block::Note(format!(
+            "Not available: {tn} is a time-series database. Time-series databases are not written with SQL INSERT statements, \
+             and Schema Bridge does not generate InfluxDB line protocol or other write operations."
+        )));
+    } else {
+        out.push(Block::Note(
         "A draft for review, in PostgreSQL syntax. Schema Bridge never runs it. Run it only on a test copy of the target; \
          it opens a transaction and leaves COMMIT commented out. Connection options are placeholders."
             .into(),
     ));
-    out.push(Block::Code(ws.draft_sql(a)));
+        out.push(Block::Code(ws.draft_sql(a)));
+    }
 
     // Assumptions.
     out.push(heading(2, "Assumptions and limitations"));
@@ -768,6 +837,16 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
         "Times without a time zone are assumed to need one when the target stores it; the draft asks which zone they were recorded in.".into(),
         "The draft SQL is written for a PostgreSQL target; for other systems it is a column-by-column guide.".into(),
     ]));
+    if [&ws.source.schema, &ws.target.schema]
+        .iter()
+        .any(|x| x.as_ref().is_some_and(Schema::is_time_series))
+    {
+        out.push(Block::List(vec![
+            "Time-series schemas come from a schema export (measurements, tags, fields, field types, series counts and retention), not from the data. A tag combination plus the time identifies a point in InfluxDB; Schema Bridge does not treat it as a primary key and does not add one.".into(),
+            "InfluxDB times have nanosecond precision; relational time types keep microseconds or less.".into(),
+            "Retention is shown as exported. A relational target has no equivalent setting, so old rows stay until deleted.".into(),
+        ]));
+    }
     out
 }
 

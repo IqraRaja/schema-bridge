@@ -74,10 +74,10 @@ schema came from. What is supported today, precisely:
 
 | | Systems |
 | --- | --- |
-| **1. Types recognised and compared** | PostgreSQL, MySQL / MariaDB, SQL Server, Oracle, SQLite |
-| **2. Schemas importable** | The same five, through one read-only export query each. Queries tested on real servers: PostgreSQL 16 and SQLite 3.45; the MySQL/MariaDB, SQL Server and Oracle queries are reviewed but not yet run on real servers. Any other relational system that can produce the same CSV columns can be loaded, but its type names are not specifically recognised. |
-| **3. Planned adapters** | Time-series databases, starting with InfluxDB-style schemas (measurements, tags, fields, retention policies); a separate MariaDB adapter where it differs from MySQL; further relational systems. |
-| **4. Not compared yet** | Views (names only), triggers and procedures, check constraint contents, generated columns, partitioning, permissions, and all time-series concepts. |
+| **1. Types recognised and compared** | PostgreSQL, MySQL / MariaDB, SQL Server, Oracle, SQLite; InfluxDB field types |
+| **2. Schemas importable** | The same five, through one read-only export query each. Queries tested on real servers: PostgreSQL 16 and SQLite 3.45; the MySQL/MariaDB, SQL Server and Oracle queries are reviewed but not yet run on real servers. Any other relational system that can produce the same CSV columns can be loaded, but its type names are not specifically recognised. **Time series:** InfluxDB 1.x / 2.x / 3 (buckets, retention, measurements, tags, fields, series counts) through Schema Bridge's time-series schema export, made with a Flux script or SQL query that has not been run on a real server yet ([docs/time-series.md](docs/time-series.md)). |
+| **3. Planned adapters** | A separate MariaDB adapter where it differs from MySQL; further relational systems. Possible later: other time-series systems (Prometheus, OpenTelemetry). |
+| **4. Not compared yet** | Views (names only), triggers and procedures, check constraint contents, generated columns, partitioning, permissions; for time series, shard groups, downsampling tasks and continuous queries. |
 
 Details: [docs/databases.md](docs/databases.md). Adding a system:
 [docs/adding-a-database.md](docs/adding-a-database.md).
@@ -102,6 +102,7 @@ More: [docs/security-privacy.md](docs/security-privacy.md).
 - [User guide](docs/user-guide.md): a walk-through with the sample schemas and every stage explained.
 - [Import formats](docs/import-formats.md): the export files and how to make them.
 - [Database systems](docs/databases.md): what is recognised, importable, planned; time-series concepts.
+- [Time series](docs/time-series.md): InfluxDB schemas, the time-series export, rules, retention, precision, SQL.
 - [Problem detection rules](docs/rules.md): every rule with its severity and meaning.
 - [Matching](docs/matching.md): how tables and columns are matched, confidence, the word list.
 - [Type compatibility](docs/type-compatibility.md): the five conversion levels with examples.
@@ -121,14 +122,15 @@ More: [docs/security-privacy.md](docs/security-privacy.md).
 ## Testing
 
 ```sh
-cargo test                     # 117 tests of the core library
+cargo test                     # 141 tests of the core library
 cargo clippy --all-targets --all-features -- -D warnings
 cargo clippy -p schema-bridge-app --target wasm32-unknown-unknown -- -D warnings
 ```
 
 The tests cover import, type recognition, every problem rule, matching,
 filters, manual overrides, integration findings, load order, draft SQL, the
-report, the exports and the saved comparison file. Parity tests compare the
+report, the exports, the saved comparison file and time-series schemas
+(import, rules, matching, SQL, the InfluxDB → PostgreSQL sample). Parity tests compare the
 results with the original browser prototype on the sample schemas, and a
 large-schema test checks that 400 × 400 tables are analysed quickly. No test
 needs a database, network access or credentials. See
@@ -139,14 +141,16 @@ needs a database, network access or credentials. See
 - Schemas come from export files; there are no direct database connections
   (an open decision, specification FR-01).
 - The draft SQL is PostgreSQL syntax; for other targets it is a
-  column-by-column guide. CSV staging is described but not generated.
+  column-by-column guide. For a time-series target (InfluxDB) no SQL and no
+  line protocol is generated.
 - Findings are risks read from the structure. Counting queries that confirm
   them on the data are not generated yet, and rules cannot be switched off.
 - Exports are CSV, Markdown and HTML; there is no Excel file.
 - The MySQL/MariaDB, SQL Server and Oracle export queries have not been run
   on real servers yet.
-- Time-series databases cannot be imported yet (the model has the extension
-  points, see [docs/databases.md](docs/databases.md#time-series-databases)).
+- Time-series schemas: InfluxDB only, from the time-series schema export;
+  no live connection, no writes to InfluxDB
+  ([docs/time-series.md](docs/time-series.md#limitations)).
 - English only. The application has been tested on macOS with Chrome; the
   Windows and Linux instructions follow the official Rust and Dioxus setup
   but have not been tried on a clean machine yet.

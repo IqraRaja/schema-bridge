@@ -39,6 +39,24 @@ and in the draft SQL. The code is `compatibility()` in
 | `bytea` → `integer` | Incompatible | Binary data cannot be converted automatically. |
 | `integer[]` → `integer` | Incompatible | Source holds a list of values, target holds one. Needs splitting or a link table. |
 
+## Time-series types
+
+InfluxDB field types are read as neutral types: `float` → double precision,
+`integer` and `unsigned` → bigint, `string` → text, `boolean` → boolean,
+and the time column `timestamp (ns)` → timestamp with time zone. On top of
+the table above:
+
+| Source → target | Result | Explanation shown |
+| --- | --- | --- |
+| `time` (ns) → `timestamptz` | Potential information loss | InfluxDB times have nanosecond precision. Relational time types keep microseconds (PostgreSQL, MySQL) or less, so digits below a microsecond are rounded or cut. |
+| `time` → `time` (two time-series schemas) | Same | Same type |
+| field of unknown type → anything | Requires conversion | The type is not in the export, so the fit cannot be judged. |
+| `integer \| float` → `integer` | Potential information loss | The field has more than one type in InfluxDB; the target column accepts only one of them. |
+| `float` → `real` | Potential information loss | Target keeps fewer digits. |
+
+The precision, unknown-type and conflict notes apply only to time-series
+columns, so relational results are unchanged. See [time series](time-series.md).
+
 ## How types are recognised
 
 Each type name is put into a category (yes/no, text, whole number, decimal,

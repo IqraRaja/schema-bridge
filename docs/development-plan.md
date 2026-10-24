@@ -26,7 +26,7 @@ The file-based app is usable after week 12 (release 0.1); direct connections arr
 
 ## Progress
 
-*Updated 24 October 2026 (release pass).*
+*Updated 24 October 2026 (milestone 8).*
 
 The work is delivered in small milestones, each checked with `cargo fmt`,
 `cargo check` and `cargo test` before the next one starts. They map onto the
@@ -70,18 +70,23 @@ step with the implementation.
 | 6a | Adapter boundary, first part: everything system-specific moved into one registry (`systems.rs`), neutral fallback for unknown systems, architecture and adapter guide, README split into recognised / importable / planned | Done |
 | 6b | Release pass: report stage and HTML/Markdown report, search and filters everywhere, review states with confidence and accept/remove/reset, type-fit explanations, large-schema performance, time-series extension points in the model, full documentation set with screenshots | Done |
 | 7 | Adapter boundary, second part: a workspace slot holds a general input instead of the CSV export files, and importers share one interface that produces the neutral model; the workspace file records which importer was used | Done (decision 23): `SchemaInput`, `Importer`, saved comparison format version 2, version 1 still opens |
-| 8 | Time-series model and the first time-series adapter: design how measurements, tags, fields, timestamps and retention policies sit next to tables (decision first, then code); an InfluxDB-style schema import; checks, matching and plan rules that understand them; a made-up time-series sample | Next |
+| 8 | Time-series model and the first time-series adapter: design how measurements, tags, fields, timestamps and retention policies sit next to tables (decision first, then code); an InfluxDB-style schema import; checks, matching and plan rules that understand them; a made-up time-series sample | Done (decision 24): time-series schema export and `influx-schema-csv` importer, `TS-*` and `MAP-TS-*` rules, precision and retention made visible, CSV staging for an InfluxDB source, no SQL for a time-series target, Plant → Readings sample ([time series](time-series.md)) |
 | 9 | Relational adapters: a separate MariaDB entry where it differs from MySQL; run the MySQL, SQL Server and Oracle export queries on real servers and fix what they show | Planned |
 | 10 | Documentation set (below), with screenshots, completed and checked by following it on a clean machine for Windows, macOS and Linux | Planned; parts are written with each milestone |
 
 Open items from earlier milestones remain: the FR-01 decision, Excel and
-HTML exports, generated CSV staging, SQL for targets other than PostgreSQL,
-and listing the links that form a cycle.
+HTML exports, SQL for targets other than PostgreSQL, and listing the links
+that form a cycle. CSV staging is now generated for source systems without a
+foreign data wrapper (milestone 8). Running the InfluxDB Flux and SQL
+recipes on real servers is open. Further time-series systems (Prometheus,
+OpenTelemetry, others), a JSON form of the export, more InfluxDB APIs,
+direct connections and line-protocol output are possible later milestones,
+not planned yet.
 
 **Documentation set.** Present: README with screenshots and quick start,
 [installation](installation.md) (macOS, Windows, Linux), [user guide](user-guide.md)
 (walk-through and every stage), [import formats](import-formats.md),
-[databases](databases.md) (including time-series concepts), [rules](rules.md),
+[databases](databases.md), [time series](time-series.md), [rules](rules.md),
 [matching](matching.md), [type compatibility](type-compatibility.md),
 [integration plan and draft SQL](integration-plan.md), [export](export.md),
 [security and privacy](security-privacy.md), [troubleshooting](troubleshooting.md),

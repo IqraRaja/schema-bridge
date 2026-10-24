@@ -12,6 +12,12 @@ of real data, and no credentials.
 | `catalogue-postgresql-4files/` | Catalogue again | The same target in the older four-file export format |
 | `sql/*.sql` | Both | The SQL that creates the two databases |
 | `sample-word-list.txt` | Both | The word list loaded with the samples: which Workshop names mean which Catalogue names |
+| `plant-influxdb.csv` | **Plant** (InfluxDB) | Time-series sample, source: a bucket with three measurements, in the [time-series schema export](../docs/time-series.md#the-time-series-schema-export) |
+| `readings-postgresql.csv` | **Readings** (PostgreSQL) | Time-series sample, target; written by hand (DDL in `sql/readings-postgresql.sql`) |
+| `sample-timeseries-word-list.txt` | Plant → Readings | `time = recorded_at`, `table: boiler = readings` |
+
+The time-series sample and what it shows are described in
+[docs/time-series.md](../docs/time-series.md#the-sample).
 
 ## The scenario
 

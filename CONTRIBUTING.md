@@ -49,6 +49,7 @@ Test files worth knowing:
 | `tests/review.rs` | Confidence, reasons, review states, accept/remove/override, search, sorting |
 | `tests/user_guide.rs` | Every number quoted in the user guide's walk-through |
 | `tests/large_schema.rs` | 400 × 400 tables analysed quickly |
+| `tests/timeseries.rs` | Time-series schemas end to end: the Plant → Readings sample, `TS-*` and `MAP-TS-*` rules, matching, retention, SQL, report, saved comparison (numbers quoted in docs/time-series.md) |
 
 If a parity fixture must change because behaviour changed on purpose, record
 why in `docs/decisions.md` and regenerate the fixture as that decision

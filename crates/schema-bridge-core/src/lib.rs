@@ -26,6 +26,7 @@ pub mod checks;
 mod csv_reader;
 pub mod export;
 pub mod import;
+pub mod influx;
 pub mod input;
 pub mod integration;
 pub mod matching;

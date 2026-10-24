@@ -10,8 +10,8 @@ There are two cases:
    This needs no change to the engine; follow the steps below.
 2. **The system's structure does not fit the one-file export** (for example
    a time-series database with measurements, tags and fields). This needs a
-   new importer and, for time-series concepts, model support that is not
-   built yet. See the end of this page.
+   new importer; the model already holds time-series concepts, and InfluxDB
+   is the worked example. See the end of this page.
 
 ## Case 1: a relational system
 
@@ -102,21 +102,27 @@ A new format adds a `SchemaInput` variant and an `Importer` with a new,
 never-changing id; the slot, the saved comparison (which records the
 importer id) and the application need no change.
 
-**Still needed**, in this order:
+**Worked example: InfluxDB (milestone 8, done).** Follow it for the next
+time-series system (Prometheus, OpenTelemetry metrics, another time-series
+database):
 
-1. ~~A general input in the workspace slot and the workspace file~~ (done:
-   development plan, milestone 7).
-2. An importer for the system's schema description (for InfluxDB, for
-   example the output of `SHOW MEASUREMENTS`, `SHOW TAG KEYS`,
-   `SHOW FIELD KEYS` and `SHOW RETENTION POLICIES`) that fills the model,
-   with a made-up sample and tests.
-3. A registry entry as in case 1 (type names such as `float`, `integer`,
-   `string`, `boolean` for fields).
-4. Checks and matching rules that read the time-series facts: for example
-   tags matched to tags, a measurement without a retention policy, a field
-   whose type differs between source and target, and how a relational table
-   maps to a measurement (which columns become tags).
-5. Plan and draft output suitable for a time-series target.
+1. A general input in the workspace slot and the workspace file (milestone 7).
+2. An interchange format and importer: `SchemaInput::InfluxSchema`,
+   `InfluxSchemaImporter` (id `influx-schema-csv`) and the parser in
+   `influx.rs`, with line-numbered errors. Put it in `importers()` before any
+   importer that would also accept its files, and test that each importer
+   claims only its own files (`input.rs`).
+3. A registry entry (`systems.rs`): `influxdb` with type overrides for the
+   field types, no foreign data wrapper, and the export recipes in
+   `export-queries/` (marked untested until run on a real server).
+4. Checks and rules that read the time-series facts, isolated from the
+   relational ones: `TS-*` in `checks.rs`, `MAP-TS-*` in `integration.rs`,
+   precision, unknown types and role changes in `matching.rs`.
+5. Plan and draft output: CSV staging for the source; no SQL for a
+   time-series target (`sql::draft_available`).
+6. A made-up sample in `demo/` with its word list, the sample loader in
+   `workspace.rs`, and an end-to-end test (`tests/timeseries.rs`).
+7. Documentation: [time series](time-series.md), and the overview pages.
 
 Until these exist, Schema Bridge cannot import or meaningfully compare
 time-series schemas, and the documentation must say so.

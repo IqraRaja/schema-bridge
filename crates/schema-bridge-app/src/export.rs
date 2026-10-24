@@ -128,7 +128,11 @@ pub fn ExportStage(
     let csv = findings_csv(&ws, &findings);
     let table = findings_table(&ws, &findings);
     let mapping = analysis.as_ref().map(|a| mapping_csv(&ws, a));
-    let sql = analysis.as_ref().map(|a| ws.draft_sql(a));
+    let sql_available = ws.sql_available();
+    let sql = analysis
+        .as_ref()
+        .filter(|_| sql_available)
+        .map(|a| ws.draft_sql(a));
     let saved = save_workspace(&ws);
     drop(ws);
     drop(analysis);
@@ -193,6 +197,8 @@ pub fn ExportStage(
                         "Save as .sql"
                     }
                     button { class: "btn ghost", onclick: move |_| go_to_sql.call(()), "Review it first →" }
+                } else if !sql_available {
+                    span { class: "muted", "Not available for a time-series target." }
                 } else {
                     span { class: "muted", "Needs both databases." }
                 }

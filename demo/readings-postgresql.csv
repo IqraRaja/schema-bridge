@@ -1,0 +1,25 @@
+record_type,table_schema,table_name,object_type,ordinal_position,column_name,data_type,is_nullable,column_default,table_comment,column_comment,constraint_name,constraint_type,definition,ref_schema,ref_table,indexname,indexdef,estimated_rows,triggers,dbms
+column,public,pump_readings,table,1,id,bigint,false,nextval('pump_readings_id_seq'::regclass),"Pump measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,pump_readings,table,2,recorded_at,timestamp with time zone,false,,"Pump measurements, one row per point.",Time of the measurement.,,,,,,,,,,postgresql
+column,public,pump_readings,table,3,site,text,false,,"Pump measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,pump_readings,table,4,unit_id,text,false,,"Pump measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,pump_readings,table,5,flow_rate,real,true,,"Pump measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,pump_readings,table,6,speed_rpm,integer,true,,"Pump measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,pump_readings,table,7,vibration,double precision,true,,"Pump measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,readings,table,1,id,bigint,false,nextval('readings_id_seq'::regclass),"Boiler measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,readings,table,2,recorded_at,timestamp with time zone,false,,"Boiler measurements, one row per point.",Time of the measurement.,,,,,,,,,,postgresql
+column,public,readings,table,3,site,text,false,,"Boiler measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,readings,table,4,unit_id,text,false,,"Boiler measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,readings,table,5,temperature,double precision,true,,"Boiler measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,readings,table,6,pressure,double precision,true,,"Boiler measurements, one row per point.",,,,,,,,,,,postgresql
+column,public,readings,table,7,running,boolean,true,,"Boiler measurements, one row per point.",,,,,,,,,,,postgresql
+constraint,public,pump_readings,,,,,,,,,pump_readings_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,postgresql
+constraint,public,pump_readings,,,,,,,,,pump_readings_point_key,UNIQUE,"UNIQUE (site, unit_id, recorded_at)",,,,,,,postgresql
+constraint,public,readings,,,,,,,,,readings_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,postgresql
+index,public,pump_readings,,,,,,,,,,,,,,pump_readings_pkey,CREATE UNIQUE INDEX pump_readings_pkey ON public.pump_readings USING btree (id),,,postgresql
+index,public,pump_readings,,,,,,,,,,,,,,pump_readings_point_key,"CREATE UNIQUE INDEX pump_readings_point_key ON public.pump_readings USING btree (site, unit_id, recorded_at)",,,postgresql
+index,public,readings,,,,,,,,,,,,,,readings_pkey,CREATE UNIQUE INDEX readings_pkey ON public.readings USING btree (id),,,postgresql
+index,public,readings,,,,,,,,,,,,,,readings_recorded_at_idx,CREATE INDEX readings_recorded_at_idx ON public.readings USING btree (recorded_at),,,postgresql
+index,public,readings,,,,,,,,,,,,,,readings_site_unit_idx,"CREATE INDEX readings_site_unit_idx ON public.readings USING btree (site, unit_id)",,,postgresql
+table,public,pump_readings,,,,,,,,,,,,,,,,0,,postgresql
+table,public,readings,,,,,,,,,,,,,,,,0,,postgresql

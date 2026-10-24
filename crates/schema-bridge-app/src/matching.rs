@@ -9,6 +9,7 @@ use schema_bridge_core::matching::{
     ColumnFilter, ColumnHow, ColumnReview, ColumnRow, ColumnStatus, DecidedBy, MatchKind, Review,
     TableChoice, TableFilter, TableSort, WordList,
 };
+use schema_bridge_core::model::ColumnRole;
 use schema_bridge_core::workspace::{Workspace, grouped};
 use schema_bridge_core::{Fit, Severity, table_name};
 
@@ -370,6 +371,10 @@ pub struct TableDetail {
 struct RowView {
     column: String,
     key_note: bool,
+    /// Time-series role of the source and target column ("time", "tag",
+    /// "field"), empty for relational columns.
+    role: &'static str,
+    target_role: &'static str,
     description: String,
     source_type: String,
     /// (value, label, selected) of the target-column picker.
@@ -388,6 +393,15 @@ struct RowView {
     reason: String,
     uncertain: bool,
     manual: bool,
+}
+
+fn role_text(role: ColumnRole) -> &'static str {
+    match role {
+        ColumnRole::Regular => "",
+        ColumnRole::Timestamp => "time",
+        ColumnRole::Tag => "tag",
+        ColumnRole::Field => "field",
+    }
 }
 
 fn type_text(label: &str, data_type: &str, nullable: bool) -> String {
@@ -444,6 +458,8 @@ fn row_view(r: &ColumnRow, primary_key: &[String], target_columns: &[String]) ->
     RowView {
         column: r.source.name.clone(),
         key_note: primary_key.contains(&r.source.name),
+        role: role_text(r.source.role),
+        target_role: r.target.as_ref().map_or("", |c| role_text(c.role)),
         description: r.source.comment.clone().unwrap_or_default(),
         source_type: type_text(&r.source.type_label, &r.source.data_type, r.source.nullable),
         options,
@@ -846,6 +862,8 @@ fn ColumnRowView(workspace: Signal<Workspace>, table: String, row: RowView) -> E
     let RowView {
         column,
         key_note,
+        role,
+        target_role,
         description,
         source_type,
         options,
@@ -895,6 +913,9 @@ fn ColumnRowView(workspace: Signal<Workspace>, table: String, row: RowView) -> E
                 if key_note {
                     span { class: "key-tag", "key" }
                 }
+                if !role.is_empty() {
+                    span { class: "key-tag role-tag role-{role}", title: "Time-series role", {role} }
+                }
                 p { class: "cell-type mono", {source_type} }
                 if !description.is_empty() {
                     p { class: "cell-desc", {description} }
@@ -921,6 +942,9 @@ fn ColumnRowView(workspace: Signal<Workspace>, table: String, row: RowView) -> E
                 }
                 if !how.is_empty() {
                     span { class: how_class, {how} }
+                }
+                if !target_role.is_empty() {
+                    span { class: "key-tag role-tag role-{target_role}", title: "Time-series role", {target_role} }
                 }
                 if !target_type.is_empty() {
                     p { class: "cell-type mono", {target_type} }

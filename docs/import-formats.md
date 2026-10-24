@@ -3,7 +3,8 @@
 Schema Bridge reads **structure exports**: CSV files that describe a
 database's tables, columns, keys, links and indexes. You make them yourself
 with one read-only query, so Schema Bridge never needs a connection or a
-password. Two formats are accepted.
+password. Two relational formats are accepted, plus the time-series schema
+export below.
 
 ## The one-file export (recommended)
 
@@ -84,6 +85,19 @@ normalised form is used for comparison. Three names mean something different
 in one system and are translated at import: Oracle `DATE` (includes a time),
 SQL Server `timestamp`/`rowversion` (a binary row version) and MySQL `float`
 (4 bytes). See [type compatibility](type-compatibility.md).
+
+## The time-series schema export
+
+For InfluxDB, Schema Bridge reads its own normalised CSV interchange format
+(`record_type, bucket, retention, measurement, key, data_type, series,
+dbms`), not a native InfluxDB format. It is produced with
+[`export-queries/influxdb.flux`](../export-queries/influxdb.flux) (InfluxDB
+2.x, 1.8 with Flux), [`export-queries/influxdb3.sql`](../export-queries/influxdb3.sql)
+(InfluxDB 3), by hand from InfluxQL `SHOW …` output, or by any other tool.
+Flux annotated CSV is accepted unchanged. The file is recognised by its
+header (`record_type`, `measurement` and `key`, no `table_name`), and a
+mistake is refused with its line number. The full description, with every
+record type and rule, is in [time series](time-series.md#the-time-series-schema-export).
 
 ## The saved comparison file
 

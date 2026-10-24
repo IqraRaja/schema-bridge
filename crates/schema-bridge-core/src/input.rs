@@ -23,6 +23,8 @@ pub enum SchemaInput {
     /// Structure exports in CSV: the one-file export, or the parts of the
     /// older four-file PostgreSQL export.
     CsvExport(ExportFiles),
+    /// The Schema Bridge time-series schema export (see `influx`), as text.
+    InfluxSchema(String),
 }
 
 impl SchemaInput {
@@ -30,6 +32,7 @@ impl SchemaInput {
         match self {
             SchemaInput::Empty => true,
             SchemaInput::CsvExport(files) => files.is_empty(),
+            SchemaInput::InfluxSchema(text) => text.trim().is_empty(),
         }
     }
 
@@ -38,6 +41,7 @@ impl SchemaInput {
         match self {
             SchemaInput::Empty => None,
             SchemaInput::CsvExport(_) => Some(&CSV_EXPORT),
+            SchemaInput::InfluxSchema(_) => Some(&INFLUX_SCHEMA),
         }
     }
 
@@ -45,7 +49,7 @@ impl SchemaInput {
     pub fn csv_files(&self) -> Option<&ExportFiles> {
         match self {
             SchemaInput::CsvExport(files) => Some(files),
-            SchemaInput::Empty => None,
+            SchemaInput::Empty | SchemaInput::InfluxSchema(_) => None,
         }
     }
 
@@ -79,9 +83,12 @@ pub trait Importer: Sync {
     fn open(&self, value: &Value) -> Option<SchemaInput>;
 }
 
-/// Every importer, in the order they are asked to recognise a file.
-pub fn importers() -> [&'static dyn Importer; 1] {
-    [&CSV_EXPORT]
+/// Every importer, in the order they are asked to recognise a file. The
+/// time-series export comes first: the CSV structure export accepts any
+/// header with `record_type`, the time-series export only one with
+/// `measurement` and `key` and no `table_name`.
+pub fn importers() -> [&'static dyn Importer; 2] {
+    [&INFLUX_SCHEMA, &CSV_EXPORT]
 }
 
 /// The importer with this id.
@@ -181,6 +188,55 @@ impl Importer for CsvExportImporter {
     }
 }
 
+/// The Schema Bridge time-series schema export (see `influx` and
+/// docs/import-formats.md). It describes one bucket and is read as a whole.
+pub struct InfluxSchemaImporter;
+
+pub static INFLUX_SCHEMA: InfluxSchemaImporter = InfluxSchemaImporter;
+
+impl Importer for InfluxSchemaImporter {
+    fn id(&self) -> &'static str {
+        "influx-schema-csv"
+    }
+
+    fn name(&self) -> &'static str {
+        "Time-series schema export (CSV)"
+    }
+
+    fn recognises(&self, text: &str) -> bool {
+        crate::influx::recognises(text)
+    }
+
+    /// The export describes a whole bucket, so a new file replaces the
+    /// input. A file with an invalid line is refused and changes nothing.
+    fn add_file(&self, input: &mut SchemaInput, text: String) -> Result<String, ImportError> {
+        crate::influx::build(&text)?;
+        *input = SchemaInput::InfluxSchema(text);
+        Ok("time-series schema export".to_string())
+    }
+
+    fn build(&self, input: &SchemaInput) -> Option<Schema> {
+        match input {
+            SchemaInput::InfluxSchema(text) => crate::influx::build(text).ok(),
+            _ => None,
+        }
+    }
+
+    fn save(&self, input: &SchemaInput) -> Value {
+        match input {
+            SchemaInput::InfluxSchema(text) => json!({ "text": text }),
+            _ => json!({}),
+        }
+    }
+
+    fn open(&self, value: &Value) -> Option<SchemaInput> {
+        let text = value.as_object()?.get("text")?.as_str()?;
+        // A saved export must still be valid; otherwise the file is damaged.
+        crate::influx::build(text).ok()?;
+        Some(SchemaInput::InfluxSchema(text.to_string()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -272,5 +328,76 @@ mod tests {
             "a wrong type is refused"
         );
         assert_eq!(CSV_EXPORT.open(&json!("text")), None);
+    }
+
+    #[test]
+    fn each_importer_claims_only_its_own_files() {
+        let influx = demo("plant-influxdb.csv");
+        assert_eq!(importer_for(&influx).unwrap().id(), "influx-schema-csv");
+        for relational in [
+            "workshop-sqlite.csv",
+            "catalogue-postgresql.csv",
+            "readings-postgresql.csv",
+            "catalogue-postgresql-4files/columns.csv",
+            "catalogue-postgresql-4files/rowcounts.csv",
+        ] {
+            assert_eq!(
+                importer_for(&demo(relational)).unwrap().id(),
+                "csv-export",
+                "{relational}"
+            );
+            assert!(!INFLUX_SCHEMA.recognises(&demo(relational)), "{relational}");
+        }
+        assert_eq!(
+            importer("influx-schema-csv").unwrap().name(),
+            "Time-series schema export (CSV)"
+        );
+    }
+
+    #[test]
+    fn the_influx_importer_replaces_the_input_and_refuses_invalid_files() {
+        let mut input = SchemaInput::Empty;
+        assert_eq!(
+            INFLUX_SCHEMA
+                .add_file(&mut input, demo("plant-influxdb.csv"))
+                .unwrap(),
+            "time-series schema export"
+        );
+        let schema = input.build().unwrap();
+        assert!(schema.is_time_series() && schema.tables.len() == 3);
+        assert_eq!(input.importer().unwrap().id(), "influx-schema-csv");
+        assert!(input.csv_files().is_none());
+
+        // An invalid line is refused with its number and changes nothing.
+        let before = input.clone();
+        let bad = "record_type,bucket,retention,measurement,key,data_type,series,dbms\nmeasurement,b,,m,,,,\nfield,b,,m,x,decimal,,\n";
+        let error = INFLUX_SCHEMA.add_file(&mut input, bad.into()).unwrap_err();
+        assert!(error.to_string().starts_with("Line 3: Unknown field type"));
+        assert_eq!(input, before);
+
+        // A CSV structure export replaces a time-series input, and back.
+        CSV_EXPORT
+            .add_file(&mut input, demo("workshop-sqlite.csv"))
+            .unwrap();
+        assert!(matches!(input, SchemaInput::CsvExport(_)));
+        INFLUX_SCHEMA
+            .add_file(&mut input, demo("plant-influxdb.csv"))
+            .unwrap();
+        assert!(matches!(input, SchemaInput::InfluxSchema(_)));
+    }
+
+    #[test]
+    fn the_influx_input_survives_saving_and_opening() {
+        let mut input = SchemaInput::Empty;
+        INFLUX_SCHEMA
+            .add_file(&mut input, demo("plant-influxdb.csv"))
+            .unwrap();
+        let saved = INFLUX_SCHEMA.save(&input);
+        assert_eq!(INFLUX_SCHEMA.open(&saved), Some(input));
+        assert_eq!(
+            INFLUX_SCHEMA.open(&json!({ "text": "record_type,measurement,key\nzebra,,\n" })),
+            None
+        );
+        assert_eq!(INFLUX_SCHEMA.open(&json!({ "combined": "x" })), None);
     }
 }

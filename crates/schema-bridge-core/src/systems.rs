@@ -188,6 +188,34 @@ pub const SYSTEMS: &[DatabaseSystem] = &[
             tested: true,
         }),
     },
+    DatabaseSystem {
+        code: "influxdb",
+        name: "InfluxDB",
+        // Field types as InfluxDB names them, and the neutral types they
+        // compare as. `float` is 8 bytes; `unsigned` has no exact neutral
+        // type and compares as a signed 64-bit integer (a finding says so).
+        type_overrides: &[
+            ("float", "double precision"),
+            ("integer", "bigint"),
+            ("unsigned", "bigint"),
+            ("string", "text"),
+            ("timestamp (ns)", "timestamp with time zone"),
+        ],
+        validate_link: None,
+        // InfluxDB has no column descriptions.
+        description_fix: None,
+        // No foreign data wrapper is assumed: the draft SQL uses CSV staging.
+        foreign_data_wrapper: None,
+        export: Some(ExportQuery {
+            steps: [
+                "In the InfluxDB UI open Data Explorer → Script Editor (or use the influx command line).",
+                "Paste the script, set the bucket name at the top, and run it. InfluxDB 3 has no Flux: use export-queries/influxdb3.sql instead.",
+                "Save the result as CSV (UI: CSV button; command line: influx query --file influxdb.flux --raw > plant.csv).",
+            ],
+            query: include_str!("../../../export-queries/influxdb.flux"),
+            tested: false,
+        }),
+    },
 ];
 
 /// The system with this code, if the library knows it.
@@ -297,7 +325,8 @@ mod tests {
 
     #[test]
     fn foreign_data_wrappers_hold_placeholders_only() {
-        for s in SYSTEMS {
+        // Systems without a wrapper (InfluxDB) are staged through CSV.
+        for s in SYSTEMS.iter().filter(|s| s.foreign_data_wrapper.is_some()) {
             let (_, server, user) = foreign_data_wrapper(s.code, "Src").unwrap();
             assert!(!server.contains("{source}"));
             assert!(user.is_none_or(|u| u.contains("'<password>'")));
@@ -326,8 +355,10 @@ mod tests {
 
     #[test]
     fn every_export_query_only_reads() {
-        assert_eq!(exportable().count(), 5);
-        for (s, q) in exportable() {
+        assert_eq!(exportable().count(), 6);
+        // The SQL export queries of the relational systems; the InfluxDB
+        // recipes are checked in `the_influxdb_recipes_only_read`.
+        for (s, q) in exportable().filter(|(s, _)| s.code != "influxdb") {
             let code = code(q.query);
             for word in [
                 "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE", "GRANT",
@@ -340,5 +371,46 @@ mod tests {
             }
             assert!(code.contains("SELECT"));
         }
+    }
+
+    #[test]
+    fn the_influxdb_recipes_only_read() {
+        let flux = system("influxdb").unwrap().export.unwrap().query;
+        let flux_code: String = flux
+            .lines()
+            .filter(|l| !l.trim_start().starts_with("//"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        // Flux writes only through to(), wideTo() and the delete API.
+        for write in ["to(", "wideTo(", "delete", "experimental.to"] {
+            assert!(!flux_code.contains(write), "flux recipe contains {write}");
+        }
+        assert!(flux_code.contains("from(bucket: bucket)") && flux_code.contains("buckets()"));
+        let sql = code(include_str!("../../../export-queries/influxdb3.sql"));
+        for word in ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE"] {
+            assert!(
+                !sql.split(|c: char| !c.is_ascii_alphanumeric())
+                    .any(|w| w == word)
+            );
+        }
+        assert!(sql.contains("INFORMATION_SCHEMA.COLUMNS"));
+    }
+
+    #[test]
+    fn influxdb_types_compare_as_neutral_types() {
+        assert_eq!(normalise_type("float", "influxdb"), "double precision");
+        assert_eq!(normalise_type("integer", "influxdb"), "bigint");
+        assert_eq!(normalise_type("unsigned", "influxdb"), "bigint");
+        assert_eq!(normalise_type("string", "influxdb"), "text");
+        assert_eq!(normalise_type("boolean", "influxdb"), "boolean");
+        assert_eq!(
+            normalise_type("timestamp (ns)", "influxdb"),
+            "timestamp with time zone"
+        );
+        // The same names keep their meaning in other systems.
+        assert_eq!(normalise_type("float", "postgresql"), "float");
+        assert!(description_fix("influxdb").is_none());
+        assert!(foreign_data_wrapper("influxdb", "S").is_none());
+        assert_eq!(system_name("influxdb"), "InfluxDB");
     }
 }

@@ -4,6 +4,8 @@
 
 use dioxus::prelude::*;
 use schema_bridge_core::ExportKind;
+use schema_bridge_core::influx::retention_summary;
+use schema_bridge_core::model::ColumnRole;
 use schema_bridge_core::report::summary;
 use schema_bridge_core::systems::exportable;
 use schema_bridge_core::workspace::{Notice, Side, Workspace, grouped, system_name};
@@ -82,6 +84,11 @@ pub fn LoadStage(
                             Icon { name: "arrow", size: 18 }
                             "Try with sample schemas"
                         }
+                        button {
+                            class: "btn secondary lg",
+                            onclick: move |_| workspace.write().load_timeseries_samples(),
+                            "Try the time-series sample (InfluxDB → PostgreSQL)"
+                        }
                         OpenWorkspaceButton { workspace, id: "open-workspace-hero", class: "btn secondary lg" }
                     }
                     p { class: "hero-hint",
@@ -124,6 +131,12 @@ pub fn LoadStage(
                             class: "btn ghost",
                             onclick: move |_| workspace.write().load_samples(),
                             "Load sample schemas"
+                        }
+                        button {
+                            class: "btn ghost",
+                            title: "InfluxDB measurements into a PostgreSQL database",
+                            onclick: move |_| workspace.write().load_timeseries_samples(),
+                            "Time-series sample"
                         }
                     }
                 }
@@ -175,6 +188,11 @@ fn Bridge(workspace: Signal<Workspace>) -> Element {
     let d = derived();
     let ws = workspace.read();
     let loaded = (ws.source.schema.is_some(), ws.target.schema.is_some());
+    let noun = ws
+        .source
+        .schema
+        .as_ref()
+        .map_or("tables", |x| x.object_noun());
     drop(ws);
     let analysis = d.analysis.read();
     let (state, title, text) = match (loaded, analysis.as_ref()) {
@@ -182,7 +200,7 @@ fn Bridge(workspace: Signal<Workspace>) -> Element {
             let m = &a.matching;
             (
                 "bridge linked",
-                format!("{} of {} tables", m.mappings.len(), m.tables.len()),
+                format!("{} of {} {noun}", m.mappings.len(), m.tables.len()),
                 format!("matched · {} integration issues", a.integration.len()),
             )
         }
@@ -310,21 +328,45 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
         Some(Notice::Rejected { file, reason }) => Some(format!("{file}: {reason}")),
         _ => None,
     };
+    let time_series = slot.schema.as_ref().is_some_and(|x| x.is_time_series());
+    let retention = slot.schema.as_ref().and_then(retention_summary);
+    let noun = slot.schema.as_ref().map_or("tables", |x| x.object_noun());
     let summary = slot.schema.as_ref().map(|schema| {
-        let s = schema.stats();
-        let stats = vec![
-            ("Tables", grouped(s.tables as i64)),
-            ("Columns", grouped(s.columns as i64)),
-            ("Links", grouped(s.links as i64)),
-            ("Rows (est.)", grouped(s.estimated_rows)),
-        ];
+        let stats = if time_series {
+            let s = schema.time_series_stats();
+            vec![
+                ("Measurements", grouped(s.measurements as i64)),
+                ("Tags", grouped(s.tags as i64)),
+                ("Fields", grouped(s.fields as i64)),
+                ("Series", s.series.map_or("–".to_string(), grouped)),
+            ]
+        } else {
+            let s = schema.stats();
+            vec![
+                ("Tables", grouped(s.tables as i64)),
+                ("Columns", grouped(s.columns as i64)),
+                ("Links", grouped(s.links as i64)),
+                ("Rows (est.)", grouped(s.estimated_rows)),
+            ]
+        };
         let tables: Vec<TableRow> = schema
             .tables
             .iter()
-            .map(|t| TableRow {
-                key: t.key.clone(),
-                name: t.name.clone(),
-                columns: format!("{} columns", t.columns.len()),
+            .map(|t| {
+                let count = |role| t.columns.iter().filter(|c| c.role == role).count();
+                TableRow {
+                    key: t.key.clone(),
+                    name: t.name.clone(),
+                    columns: if time_series {
+                        format!(
+                            "{} tags · {} fields",
+                            count(ColumnRole::Tag),
+                            count(ColumnRole::Field)
+                        )
+                    } else {
+                        format!("{} columns", t.columns.len())
+                    },
+                }
             })
             .collect();
         (system_name(&schema.dbms).to_string(), stats, tables)
@@ -367,6 +409,9 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
                 if let Some((system , _ , _)) = &summary {
                     p { class: "dbpanel-engine",
                         span { class: "engine", {system.clone()} }
+                        if time_series {
+                            span { class: "badge ts", "Time series" }
+                        }
                         if let Some(file) = file.clone() {
                             span { class: "file", {file} }
                         }
@@ -382,13 +427,21 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
                         }
                     }
                 }
-                div { class: "chips",
-                    for (label , class) in chips {
-                        span { key: "{label}", class, {label} }
+                if let Some(retention) = retention {
+                    p { class: "retention",
+                        b { "Retention " }
+                        {retention}
+                    }
+                }
+                if slot.input.csv_files().is_some() {
+                    div { class: "chips",
+                        for (label , class) in chips {
+                            span { key: "{label}", class, {label} }
+                        }
                     }
                 }
                 details { class: "table-list",
-                    summary { "Show the {tables.len()} tables" }
+                    summary { "Show the {tables.len()} {noun}" }
                     ul {
                         for TableRow { key , name , columns } in tables {
                             li { key: "{key}",

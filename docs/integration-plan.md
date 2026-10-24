@@ -92,7 +92,13 @@ the script says to export each table to CSV and load it with `COPY` into the
 
 - Written in **PostgreSQL syntax** (specification FR-16). For another target
   the script starts with a note and serves as a column-by-column guide.
-- The **CSV staging** alternative is described, not generated.
+- For a source system **without a known foreign data wrapper** (InfluxDB,
+  or an unknown system) the script creates CSV staging tables and writes a
+  `\copy` command per table instead of `IMPORT FOREIGN SCHEMA`.
+- For a **time-series target** (InfluxDB) **no SQL is generated**: such
+  databases are not written with SQL `INSERT`s, and Schema Bridge does not
+  write line protocol. Step 5 of the plan, the Draft SQL stage, the Export
+  card and the report say so ([time series](time-series.md#draft-sql)).
 - Lookups match by a column called `name`; check the match column.
 - There is no upsert mode; running the load twice duplicates rows unless the
   target rejects them. Step 6 checks this.

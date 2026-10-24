@@ -5,16 +5,6 @@ releases are tagged by the repository owner.
 
 ## [Unreleased]
 
-### Architecture
-
-- One import boundary: a database slot holds a general schema input, and
-  every input format has an importer that turns it into the neutral model.
-  The CSV structure exports are the first importer and behave exactly as
-  before (milestone 7, decision 23).
-- Saved comparisons use format version 2, which records the importer of each
-  database. Files saved with 0.1.0 (version 1) still open; a file naming an
-  importer this version does not have is refused with a clear message.
-
 ## [0.1.0] - 2026-10-24
 
 First release.
@@ -61,7 +51,51 @@ First release.
 ### Architecture
 
 - Database-neutral core with one registry for system-specific knowledge
-  (`systems.rs`) and extension points for time-series concepts in the model.
+  (`systems.rs`); time-series concepts (measurements, tags, fields,
+  retention) live in the same neutral model.
+- One import boundary: a database slot holds a general schema input, and
+  every input format has an importer that turns it into the neutral model.
+  The CSV structure exports are the first importer and behave exactly as
+  before (milestone 7, decision 23).
+- Saved comparisons use format version 2, which records the importer of each
+  database. Files in format version 1 still open; a file naming an
+  importer this version does not have is refused with a clear message.
+
+### Time series (milestone 8, decision 24)
+
+- **InfluxDB schemas** through Schema Bridge's time-series schema export
+  (a normalised CSV of buckets, retention, measurements, tags, fields, field
+  types and series counts), with a Flux script (InfluxDB 2.x, 1.8) and an SQL
+  query (InfluxDB 3), not yet run on real servers. Flux annotated CSV is
+  accepted; mistakes are refused with their line number. New importer
+  `influx-schema-csv`; measurements, tags, fields and retention live in the
+  one neutral model.
+- **Problems:** six `TS-*` rules (no fields, type conflicts, unknown types,
+  tag/field key clashes, high cardinality, unsigned fields). Relational
+  rules no longer run on measurements.
+- **Matching:** nanosecond times into relational time types are shown as
+  potential information loss; unknown field types and type conflicts are
+  never guessed; tag ↔ field role changes are noted.
+- **Integration issues:** `MAP-TS-SERIES-KEY` (point identity without a
+  unique rule, never added automatically), `MAP-TS-RETENTION` (limited
+  history, shorter target retention), `MAP-TS-ROLE-CHANGE`.
+  `MAP-NO-SOURCE-ID` is not reported for measurements.
+- **Draft SQL:** CSV staging for an InfluxDB source; for a time-series target
+  no SQL is generated, with an explanation in the plan, Draft SQL stage,
+  Export and report.
+- **Screens:** *Time series* badge; measurements, tags, fields and series on
+  the database panel; retention; time/tag/field markers in the column grid;
+  the *Time series* area in problems; the SQL notice. The report adds a time-
+  series table and assumptions.
+- **Sample:** *Try the time-series sample (InfluxDB → PostgreSQL)*, Plant →
+  Readings, with its word list.
+
+### Fixed
+
+- For a source system without a known foreign data wrapper, the draft SQL
+  kept an `IMPORT FOREIGN SCHEMA … FROM SERVER` statement for a server it
+  never created. It now creates CSV staging tables with `\copy` commands.
+  The drafts for the five relational systems are unchanged.
 
 ### Known limitations
 

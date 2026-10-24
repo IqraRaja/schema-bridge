@@ -114,6 +114,7 @@ pub fn PlanStage(
         };
     };
     let steps = plan_steps(&ws, analysis);
+    let sql_available = ws.sql_available();
     drop(ws);
     let fix_target = items(&steps.fix_target);
     let check_source = items(&steps.check_source);
@@ -221,13 +222,24 @@ pub fn PlanStage(
                     p { class: "callout warning", role: "note", {note} }
                 }
             }
-            Step {
-                number: 5,
-                title: "Run a test load with the draft SQL",
-                hint: "Every TODO marks a decision from step 3. Run it on a test copy first, inside a transaction you can roll back.",
-                div { class: "plan-row",
-                    p { {todo_text} }
-                    button { class: "btn primary", onclick: move |_| go_to_sql.call(()), "Open draft SQL →" }
+            if sql_available {
+                Step {
+                    number: 5,
+                    title: "Run a test load with the draft SQL",
+                    hint: "Every TODO marks a decision from step 3. Run it on a test copy first, inside a transaction you can roll back.",
+                    div { class: "plan-row",
+                        p { {todo_text} }
+                        button { class: "btn primary", onclick: move |_| go_to_sql.call(()), "Open draft SQL →" }
+                    }
+                }
+            } else {
+                Step {
+                    number: 5,
+                    title: "Run a test load with the target's own tools",
+                    hint: "Schema Bridge drafts SQL only for relational targets.",
+                    p { class: "callout", role: "note",
+                        "{t} is a time-series database. Time-series databases are not written with SQL INSERT statements, and Schema Bridge does not generate InfluxDB line protocol or other write operations. Use the mapping (Matching stage, or the mapping CSV on Export) with the database's own tools."
+                    }
                 }
             }
             Step {
@@ -314,6 +326,7 @@ pub fn SqlStage(
         )
     }));
     let todos = sql.matches("TODO").count();
+    let sql_available = ws.sql_available();
     let not_postgres = ws
         .target
         .schema
@@ -335,6 +348,16 @@ pub fn SqlStage(
         n => format!("{n} TODOs mark decisions that are still open."),
     };
     let download = sql.clone();
+
+    if !sql_available {
+        return rsx! {
+            {head}
+            div { class: "callout", role: "note",
+                b { "Not available for a time-series target. " }
+                "{t} is a time-series database. Time-series databases are not written with SQL INSERT statements, and Schema Bridge does not generate InfluxDB line protocol or other write operations. Use the mapping on the Matching stage, or save it as CSV on the Export stage, and write the data with the database's own tools."
+            }
+        };
+    }
 
     rsx! {
         {head}

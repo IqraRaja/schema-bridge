@@ -49,15 +49,16 @@ The workspace's default member is the core, so `cargo test` and
 | --- | --- |
 | `csv_reader` | Small CSV reader that keeps "quoted or not" (an unquoted `NULL` is no value) |
 | `import` | Reads the CSV structure exports (`ExportFiles`), builds the `Schema` |
-| `input` | The import boundary: `SchemaInput` (what a slot was loaded from, one variant per format), the `Importer` interface, the importer registry, and `CsvExportImporter` |
-| `model` | `Schema`, `Table`, `Column`, keys, links, indexes, statistics; `TableKind`, `ColumnRole`, `RetentionPolicy` for time series |
+| `input` | The import boundary: `SchemaInput` (what a slot was loaded from, one variant per format), the `Importer` interface, the importer registry, `InfluxSchemaImporter` and `CsvExportImporter` |
+| `influx` | The time-series schema export (InfluxDB): recognition, parsing with line-numbered errors, retention periods |
+| `model` | `Schema`, `Table`, `Column`, keys, links, indexes, statistics; `TableKind`, `ColumnRole`, `RetentionPolicy`, series counts and `TimeSeriesStats` for time series |
 | `types` | Type recognition (`type_info`) and compatibility (`compatibility`, `Fit` with labels and meanings) |
 | `systems` | Registry of database systems: names, type overrides, validation statements, description fixes, foreign data wrappers, export queries |
-| `checks` | The 20 rules inside one database (`Finding`, `Severity`) |
+| `checks` | The 20 relational rules and the 6 `TS-*` rules inside one database (`Finding`, `Severity`) |
 | `matching` | Word list, tokens, scores, `match_tables`, `map_columns`, `Evidence`, `Review` states, `TableFilter`, `ColumnFilter`, `TableSort` |
-| `integration` | The 9 `MAP-*` rules |
+| `integration` | The 9 `MAP-*` rules and the 3 `MAP-TS-*` rules |
 | `plan` | Load order (`LoadStep`), cycles |
-| `sql` | Draft SQL per table and the whole script |
+| `sql` | Draft SQL per table and the whole script; CSV staging without a foreign data wrapper; no SQL for a time-series target |
 | `report` | `Summary`, `PlanSteps`, report document (`Block`) rendered to Markdown and HTML |
 | `export` | Findings CSV/table, mapping CSV |
 | `workspace` | `Workspace` (slots, word list, overrides), `Analysis`, `FindingFilter`, samples |
@@ -89,6 +90,7 @@ A workspace slot holds a `SchemaInput`, never format-specific files:
 pub enum SchemaInput {
     Empty,
     CsvExport(ExportFiles), // the one-file export or the four-file parts
+    InfluxSchema(String),   // the time-series schema export (InfluxDB)
 }
 ```
 
@@ -105,6 +107,10 @@ Every input format has an `Importer` (`input.rs`):
 
 When a file is added, the first importer in `importers()` that recognises it
 takes it; a file no importer recognises is refused with the usual message.
+`InfluxSchemaImporter` (`influx-schema-csv`, parsing in `influx.rs`) is asked
+first, because the CSV export importer accepts any header with
+`record_type`; it recognises only a header with `measurement` and `key` and
+no `table_name`.
 `CsvExportImporter` only delegates to `import.rs`, so CSV import behaves
 exactly as before (tested by comparing both paths on every sample export).
 
@@ -136,9 +142,14 @@ other targets; the four-file export is a PostgreSQL format.
   `SchemaInput` variant and an `Importer` in `input.rs` (below). The slot,
   the saved comparison and the application need no change.
 - **Time-series databases**: `TableKind::Measurement`, `ColumnRole`
-  (`Timestamp`, `Tag`, `Field`) and `RetentionPolicy` exist in the model and
-  default to relational. No importer fills them and no rule reads them yet
-  ([databases.md](databases.md#time-series-databases), milestone 8).
+  (`Timestamp`, `Tag`, `Field`), `RetentionPolicy` and `Table::series` in the
+  one neutral model. The InfluxDB importer fills them. `checks::check_schema`
+  runs the relational rules only on tables and the `TS-*` rules only on
+  measurements. `matching` adjusts the type fit for time-series columns
+  (precision, unknown types, conflicts) and notes role changes.
+  `integration` adds `MAP-TS-*`, and `sql::draft_available` is false for a
+  time-series target. A relational-only comparison takes none of these paths
+  ([time series](time-series.md), decision 24).
 
 ## Performance
 

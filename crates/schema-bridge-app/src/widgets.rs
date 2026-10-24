@@ -39,10 +39,14 @@ pub fn summary_cards(s: &Summary, both: bool) -> Vec<SummaryData> {
     if both {
         let t = s.tables;
         out.push(SummaryData {
-            title: "Tables",
+            title: if s.source_noun == "measurements" {
+                "Measurements"
+            } else {
+                "Tables"
+            },
             icon: "load",
             headline: format!("{} of {}", t.matched, t.total),
-            caption: "source tables have a place in the target".into(),
+            caption: format!("source {} have a place in the target", s.source_noun),
             // Uncertain tables are always matched ones, so the matched
             // tables are split into confident and to review.
             segments: vec![

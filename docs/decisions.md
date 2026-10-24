@@ -373,3 +373,51 @@ No behaviour changed: the same files are accepted and refused with the same
 messages, adding, replacing and clearing work as before, and the analysis
 results are identical.
 
+### 24. Time-series schemas in the neutral model (InfluxDB first)
+
+Milestone 8. InfluxDB is schema-on-write: buckets with a retention period
+hold measurements, a measurement's points have a nanosecond `time`, tags
+(indexed text that identifies a series) and typed fields. There are no keys,
+links, constraints or explicit indexes, and a point with the same series and
+time silently replaces the earlier one.
+
+- **One neutral model.** A measurement is a `Table` with
+  `kind: TableKind::Measurement`; its columns carry `ColumnRole::Timestamp`,
+  `Tag` or `Field`; buckets are `RetentionPolicy` entries, and a new
+  `Table::series` holds the series cardinality (never mixed with `rows`).
+  Series identity (tags + time) is derived from the roles when a rule needs
+  it, not stored as a primary key, so no relational rule mistakes it for one.
+- **Interchange format, not a native format.** Schema Bridge defines a
+  normalised time-series schema export (CSV: `record_type, bucket,
+  retention, measurement, key, data_type, series, dbms`), produced with the
+  provided Flux script (InfluxDB 2.x, 1.8 with Flux) or SQL query
+  (InfluxDB 3), or by any other tool. Flux annotated CSV is accepted
+  unchanged. Flux is a way to produce the export: it is neither an importer
+  nor a database system.
+- **Importer.** `InfluxSchemaImporter` (id `influx-schema-csv`) behind the
+  milestone-7 `Importer` interface. It is asked before the CSV structure
+  export importer because the latter accepts any header with
+  `record_type`; recognition requires `measurement` and `key` and no
+  `table_name`.
+- **Isolated rules.** Relational rules run only on tables of kind `Table`;
+  time-series rules (`TS-*`) only on measurements; integration rules for
+  time series (`MAP-TS-*`) only on mappings that involve a measurement. A
+  relational-only comparison gives exactly the same results as before.
+- **Conservative conclusions.** Tags + time are offered as the identity to
+  review (a finding when the target has no unique rule on them), never
+  turned into a primary key. Nanosecond times into relational time types are
+  shown as potential information loss. Unknown field types stay unknown and
+  are reported. PostgreSQL has no retention period, so a finite source
+  retention is reported as a decision, not converted.
+- **SQL.** InfluxDB as a source: the usual draft with CSV staging (no
+  foreign data wrapper is assumed). InfluxDB as a target: no SQL is
+  generated; Schema Bridge does not write line protocol.
+- **Fixed on the way:** for a source system without a known foreign data
+  wrapper the draft used to keep an `IMPORT FOREIGN SCHEMA … FROM SERVER`
+  statement for a server it had not created; it now writes CSV staging
+  tables and `\copy` commands. The five relational systems all have a
+  wrapper, so their drafts are unchanged.
+- **No source-ID finding for measurements.** `MAP-NO-SOURCE-ID` assumes a
+  source row has an ID to keep; a point has none (its identity is tags +
+  time, covered by `MAP-TS-SERIES-KEY`), so the rule skips measurements.
+

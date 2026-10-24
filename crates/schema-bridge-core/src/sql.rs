@@ -68,6 +68,60 @@ fn cast(row: &ColumnRow, mapping_target: &crate::model::Table) -> (String, Strin
     (format!("{c}::{ty}"), cp.note.clone())
 }
 
+/// Whether Schema Bridge drafts SQL for this target: only for relational
+/// targets. A time-series database is not written with SQL.
+pub fn draft_available(target: &Schema) -> bool {
+    !target.is_time_series()
+}
+
+/// What the draft says instead of SQL when the target is a time-series
+/// database.
+pub fn time_series_target_notice(target_name: &str, dbms: &str) -> String {
+    format!(
+        "-- No SQL is generated for {target_name}: {} is a time-series database.\n-- Time-series databases are not written with SQL INSERT statements, and\n-- Schema Bridge does not generate InfluxDB line protocol or other write operations.\n-- Use the mapping (Matching stage, mapping CSV) to set up the export and write\n-- with the database's own tools.\n",
+        system_name(dbms)
+    )
+}
+
+/// Staging tables for a source without a foreign data wrapper, and the
+/// commands that load each table's CSV export into them.
+fn csv_staging(source: &Schema, mappings: &[TableMapping]) -> String {
+    let mut out = String::from(
+        "--    Export each table to CSV with a header row (for InfluxDB: one file per measurement,\n--    time first, then tags and fields), then load it with \\copy from psql.\n",
+    );
+    let mut done: Vec<&str> = Vec::new();
+    for p in mappings {
+        let Some(s) = source.table(&p.source) else {
+            continue;
+        };
+        if done.contains(&s.key.as_str()) {
+            continue;
+        }
+        done.push(&s.key);
+        let columns: Vec<String> = s
+            .columns
+            .iter()
+            .map(|c| {
+                let ty = if c.data_type.is_empty() {
+                    "text"
+                } else {
+                    &c.data_type
+                };
+                format!("  {} {ty}", quote(&c.name))
+            })
+            .collect();
+        out.push_str(&format!(
+            "CREATE TABLE staging.{} (\n{}\n);\n-- \\copy staging.{} FROM '{}.csv' WITH (FORMAT csv, HEADER)\n",
+            quote(&s.name),
+            columns.join(",\n"),
+            quote(&s.name),
+            s.name
+        ));
+    }
+    out.push('\n');
+    out
+}
+
 /// The `INSERT … SELECT` that loads one source table into its target table
 /// from the staging copy.
 pub fn table_sql(
@@ -76,6 +130,12 @@ pub fn table_sql(
     target: &Schema,
     source_name: &str,
 ) -> String {
+    if !draft_available(target) {
+        let name = target
+            .table(&mapping.target)
+            .map_or("The target", |t| t.name.as_str());
+        return time_series_target_notice(name, &target.dbms);
+    }
     let (Some(s), Some(t)) = (source.table(&mapping.source), target.table(&mapping.target)) else {
         return String::new();
     };
@@ -159,6 +219,9 @@ pub fn draft_sql(
     mappings: &[TableMapping],
     order: &[LoadStep],
 ) -> String {
+    if !draft_available(target) {
+        return time_series_target_notice(target_name, &target.dbms);
+    }
     let mut out = String::new();
     if target.dbms != "postgresql" {
         out.push_str(&format!(
@@ -214,11 +277,15 @@ pub fn draft_sql(
         )),
     }
     out.push_str("CREATE SCHEMA IF NOT EXISTS staging;\n");
-    out.push_str(&format!(
-        "IMPORT FOREIGN SCHEMA {}\n  LIMIT TO ({})\n  FROM SERVER source_db INTO staging;\n\n",
-        quote(source_schema),
-        tables.join(", ")
-    ));
+    if foreign_data_wrapper(&source.dbms, source_name).is_some() {
+        out.push_str(&format!(
+            "IMPORT FOREIGN SCHEMA {}\n  LIMIT TO ({})\n  FROM SERVER source_db INTO staging;\n\n",
+            quote(source_schema),
+            tables.join(", ")
+        ));
+    } else {
+        out.push_str(&csv_staging(source, mappings));
+    }
     out.push_str(
         "-- 2. Load in this order, on the TEST database, inside one transaction\nBEGIN;\n\n",
     );

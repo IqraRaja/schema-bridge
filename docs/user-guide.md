@@ -53,6 +53,33 @@ contain deliberate problems so every feature has something to show; the
 8. **Export.** Save the findings or the mapping as CSV, or **Save comparison**
    to continue later. Reopen it with **Open workspace…** on the Load stage.
 
+### The time-series sample (InfluxDB → PostgreSQL)
+
+**Try the time-series sample (InfluxDB → PostgreSQL)** on the first screen
+(or **Time-series sample** on the Load stage) loads **Plant**, a made-up
+InfluxDB bucket, and **Readings**, a PostgreSQL database for its sensor data.
+
+1. **Load.** The Plant panel shows a *Time series* badge, 3 measurements,
+   6 tags, 9 fields and 622 series, and *Retention plant: 30 days*. The
+   bridge reads *2 of 3 measurements matched*.
+2. **Problems.** Three findings in Plant, area *Time series*: `pump.speed_rpm`
+   has two types, `boiler.firmware_version` has an unknown type, and
+   `energy_meter.total_kwh` is unsigned.
+3. **Matching.** `boiler → readings` comes from the word list, `pump →
+   pump_readings` is automatic, `energy_meter` has no place. Columns are
+   marked **time**, **tag** or **field**. `time → recorded_at` is potential
+   information loss: nanoseconds become microseconds.
+4. **Integration issues.**
+   - `readings` has no unique rule on (site, unit_id, recorded_at):
+     `MAP-TS-SERIES-KEY`, to review, not added automatically.
+   - Both mappings get `MAP-TS-RETENTION`, because Plant keeps only 30 days.
+5. **Draft SQL.** CSV staging tables for `boiler` and `pump` with `\copy`
+   commands, then the inserts. Press **⇄ Swap** to make InfluxDB the
+   target: the Draft SQL stage then explains that no SQL or line protocol is
+   generated.
+
+Details: [time series](time-series.md).
+
 ## The stages in detail
 
 ### 1. Load schemas
@@ -78,6 +105,10 @@ MariaDB, SQL Server, Oracle and SQLite. Details: [import formats](import-formats
 - **⇄ Swap** exchanges source and target; choices made by hand are dropped
   because they no longer apply.
 - **Open workspace…** reopens a saved comparison.
+- A **time-series export** (InfluxDB) shows a *Time series* badge,
+  measurements, tags, fields and series instead of tables, columns, links
+  and rows, and the retention of each bucket. It is one file; loading another
+  replaces it. See [time series](time-series.md).
 
 ### 2. Problems
 
@@ -183,7 +214,8 @@ The integration as six steps ([integration plan](integration-plan.md)):
 The test-load script in load order, or one table at a time. **Copy SQL** and
 **Save as .sql** keep it on your computer. Read
 [integration-plan.md](integration-plan.md#draft-sql) before running anything
-derived from it.
+derived from it. For a time-series target this stage shows a notice instead
+of SQL ([time series](time-series.md#draft-sql)).
 
 ### 7. Report
 

@@ -92,6 +92,9 @@ pub struct Table {
     pub kind: TableKind,
     /// The retention policy a measurement belongs to, by name.
     pub retention_policy: Option<String>,
+    /// Number of series (tag combinations) of a measurement, if exported.
+    /// Not a row count: a series holds any number of points.
+    pub series: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -165,10 +168,53 @@ pub struct SchemaStats {
     pub estimated_rows: i64,
 }
 
+/// Counts for a time-series schema: measurements, tags, fields and the sum
+/// of the exported series counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct TimeSeriesStats {
+    pub measurements: usize,
+    pub tags: usize,
+    pub fields: usize,
+    /// Sum of the exported series counts; `None` when none was exported.
+    pub series: Option<i64>,
+}
+
 impl Schema {
+    /// Measurement, tag, field and series counts (all zero for a relational
+    /// schema).
+    pub fn time_series_stats(&self) -> TimeSeriesStats {
+        let m: Vec<&Table> = self
+            .tables
+            .iter()
+            .filter(|t| t.kind == TableKind::Measurement)
+            .collect();
+        let count = |role: ColumnRole| {
+            m.iter()
+                .flat_map(|t| &t.columns)
+                .filter(|c| c.role == role)
+                .count()
+        };
+        let series: Vec<i64> = m.iter().filter_map(|t| t.series).collect();
+        TimeSeriesStats {
+            measurements: m.len(),
+            tags: count(ColumnRole::Tag),
+            fields: count(ColumnRole::Field),
+            series: (!series.is_empty()).then(|| series.iter().sum()),
+        }
+    }
+
     /// True when the schema describes any time-series measurement.
     pub fn is_time_series(&self) -> bool {
         self.tables.iter().any(|t| t.kind == TableKind::Measurement)
+    }
+
+    /// What the schema's objects are called: "measurements" or "tables".
+    pub fn object_noun(&self) -> &'static str {
+        if self.is_time_series() {
+            "measurements"
+        } else {
+            "tables"
+        }
     }
 
     /// Finds a table by its key (`schema.name`).

@@ -44,6 +44,21 @@ work on the structure alone; none reads data. The code is in
 Rules that need a part of the export that is missing (for example indexes)
 are skipped rather than reporting false problems.
 
+### Time-series rules
+
+These run only on measurements (time-series schemas); the rules above run
+only on tables, so a measurement is never reported for a missing primary key
+or an unchecked link. Details and examples: [time series](time-series.md).
+
+| Rule id | Severity | Area | Finds |
+| --- | --- | --- | --- |
+| `TS-MEASUREMENT-NO-FIELDS` | High | Time series | A measurement with no fields in the export |
+| `TS-FIELD-TYPE-CONFLICT` | High | Time series | A field with more than one type (`integer \| float`) |
+| `TS-FIELD-TYPE-UNKNOWN` | Medium | Time series | A field whose type is not in the export |
+| `TS-TAG-FIELD-SAME-KEY` | Medium | Time series | A field that shares its key with a tag |
+| `TS-HIGH-CARDINALITY` | Medium or Low | Time series | Medium: 100,000 series or more; Low: a tag named like an unbounded value (`uuid`, `request_id`, `session_id`, `trace_id`, `span_id`) |
+| `TS-UNSIGNED-FIELD` | Info | Time series | An unsigned integer field |
+
 ## Integration rules
 
 These compare the two databases through the matching, so they change when
@@ -57,9 +72,12 @@ you change a match.
 | `MAP-DUPLICATES` | High | A unique target column fed from a source column without a unique rule |
 | `MAP-TYPE-FIT` | Medium | A mapped column whose values may be cut, rounded, lose their time zone, or cannot be converted |
 | `MAP-EMPTY-VALUES` | Medium | Source columns that may be empty mapped to required target columns |
-| `MAP-NO-SOURCE-ID` | Medium | No place in the target to keep the original source ID, so a load cannot be repeated or traced |
+| `MAP-NO-SOURCE-ID` | Medium | No place in the target to keep the original source ID, so a load cannot be repeated or traced (not for measurements, whose points have no ID) |
 | `MAP-NO-TARGET` | Medium | A source table with no place in the target |
 | `MAP-MANY-TO-ONE` | Info | Several source tables go into one target table |
+| `MAP-TS-SERIES-KEY` | Medium | Measurement → table: no unique rule on the columns that receive tags and time (not added automatically). Table → measurement: rows that share tag and time values would overwrite each other |
+| `MAP-TS-RETENTION` | Medium or High | Medium: a finite source retention into a relational target, which has no retention period. High: a time-series target that keeps data for a shorter time |
+| `MAP-TS-ROLE-CHANGE` | Medium | A tag that becomes a field, or the reverse |
 
 ## Filtering
 

@@ -9,7 +9,7 @@ use crate::integration::integration_findings;
 use crate::matching::{Matching, Overrides, TableChoice, TableMapping, WordList, match_schemas};
 use crate::model::Schema;
 use crate::plan::{LoadStep, load_order};
-use crate::sql::{draft_sql, table_sql};
+use crate::sql::{draft_available, draft_sql, table_sql};
 
 /// Generic sample exports (made-up databases from the repository's `demo/`
 /// folder). They go through the same import as a user's own files.
@@ -17,6 +17,12 @@ const SAMPLE_SOURCE: &str = include_str!("../../../demo/workshop-sqlite.csv");
 const SAMPLE_TARGET: &str = include_str!("../../../demo/catalogue-postgresql.csv");
 /// The word list that belongs to the sample schemas.
 pub const SAMPLE_WORD_LIST: &str = include_str!("../../../demo/sample-word-list.txt");
+/// The time-series sample: an InfluxDB schema export and a PostgreSQL
+/// database that should receive its data.
+const SAMPLE_TS_SOURCE: &str = include_str!("../../../demo/plant-influxdb.csv");
+const SAMPLE_TS_TARGET: &str = include_str!("../../../demo/readings-postgresql.csv");
+/// The word list that belongs to the time-series sample.
+pub const SAMPLE_TS_WORD_LIST: &str = include_str!("../../../demo/sample-timeseries-word-list.txt");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Side {
@@ -174,7 +180,9 @@ impl Workspace {
     /// The sample word list belongs to the sample schemas; it is removed as
     /// soon as the user's own files come in (unless the user edited it).
     fn leave_samples(&mut self) {
-        if self.using_samples && self.word_list == SAMPLE_WORD_LIST {
+        if self.using_samples
+            && (self.word_list == SAMPLE_WORD_LIST || self.word_list == SAMPLE_TS_WORD_LIST)
+        {
             self.word_list.clear();
         }
         self.using_samples = false;
@@ -237,6 +245,12 @@ impl Workspace {
             ),
             _ => String::new(),
         }
+    }
+
+    /// False when the target is a time-series database: Schema Bridge drafts
+    /// no SQL for it (see [`crate::sql::draft_available`]).
+    pub fn sql_available(&self) -> bool {
+        self.target.schema.as_ref().is_none_or(draft_available)
     }
 
     /// The draft SQL for one table mapping.
@@ -308,6 +322,22 @@ impl Workspace {
             target,
             using_samples: true,
             word_list: SAMPLE_WORD_LIST.to_string(),
+            overrides: Overrides::default(),
+        };
+    }
+
+    /// Replaces both slots with the time-series sample: InfluxDB into
+    /// PostgreSQL.
+    pub fn load_timeseries_samples(&mut self) {
+        let mut source = Slot::new("Plant (sample)");
+        source.add_file("plant-influxdb.csv", SAMPLE_TS_SOURCE.to_string());
+        let mut target = Slot::new("Readings (sample)");
+        target.add_file("readings-postgresql.csv", SAMPLE_TS_TARGET.to_string());
+        *self = Workspace {
+            source,
+            target,
+            using_samples: true,
+            word_list: SAMPLE_TS_WORD_LIST.to_string(),
             overrides: Overrides::default(),
         };
     }

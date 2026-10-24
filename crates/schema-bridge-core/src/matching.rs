@@ -9,7 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::checks::{Severity, has_text, is_unique_column};
-use crate::model::{Column, Schema, Table, table_name};
+use crate::model::{Column, ColumnRole, Schema, Table, table_name};
 use crate::types::{Category, Compatibility, Fit, compatibility, type_info};
 
 /// Minimum score of an automatic table match (specification §7).
@@ -609,6 +609,64 @@ pub enum NoteKind {
     EmptyValues,
     /// Non-unique source values into a unique target column.
     Unique,
+    /// A time-series tag becomes a field, or a field becomes a tag.
+    RoleChange,
+}
+
+/// The type fit for columns with a time-series role. Relational columns
+/// (role `Regular`) keep the result of `compatibility` unchanged.
+fn time_series_fit(sc: &Column, tc: &Column, cp: Compatibility) -> Compatibility {
+    let result = |fit, note: String| Compatibility {
+        fit,
+        note,
+        lookup: false,
+    };
+    let unknown = |c: &Column| c.role == ColumnRole::Field && c.type_label.is_empty();
+    let conflict = |c: &Column| {
+        c.role == ColumnRole::Field && c.type_label.contains(crate::influx::CONFLICT_SEPARATOR)
+    };
+    if conflict(sc) {
+        return result(
+            Fit::Loss,
+            format!(
+                "{} has more than one type in InfluxDB ({}); the target column accepts only one of them.",
+                sc.name, sc.type_label
+            ),
+        );
+    }
+    if unknown(sc) || unknown(tc) {
+        let which = if unknown(sc) { &sc.name } else { &tc.name };
+        return result(
+            Fit::Convert,
+            format!(
+                "The type of {which} is not in the export, so the fit cannot be judged. Check the values before loading."
+            ),
+        );
+    }
+    let is_time = |c: &Column| type_info(&c.data_type).category == Category::Timestamp;
+    if sc.role == ColumnRole::Timestamp && tc.role != ColumnRole::Timestamp && is_time(tc) {
+        return result(
+            Fit::Loss,
+            "InfluxDB times have nanosecond precision. Relational time types keep microseconds (PostgreSQL, MySQL) or less, so digits below a microsecond are rounded or cut.".into(),
+        );
+    }
+    cp
+}
+
+/// A note when a tag is mapped to a field or a field to a tag (both sides
+/// time series).
+fn role_change(sc: &Column, tc: &Column) -> Option<String> {
+    match (sc.role, tc.role) {
+        (ColumnRole::Tag, ColumnRole::Field) => Some(format!(
+            "{} is a tag in the source (indexed, part of the series identity, always text) and a field in the target (not indexed, typed). Series that differ only in this tag would be merged.",
+            sc.name
+        )),
+        (ColumnRole::Field, ColumnRole::Tag) => Some(format!(
+            "{} is a field in the source and a tag in the target: its values become indexed text and part of the series identity, which can multiply the number of series.",
+            sc.name
+        )),
+        _ => None,
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -890,7 +948,7 @@ pub fn map_columns(
                     },
                 };
             };
-            let cp = compatibility(&sc.data_type, &tc.data_type);
+            let cp = time_series_fit(sc, tc, compatibility(&sc.data_type, &tc.data_type));
             let mut notes = Vec::new();
             let mut note = |severity, kind, text: String| notes.push(Note { severity, kind, text });
             match cp.fit {
@@ -899,6 +957,9 @@ pub fn map_columns(
                 }
                 Fit::Convert => note(Severity::Medium, NoteKind::Type, cp.note.clone()),
                 _ => {}
+            }
+            if let Some(text) = role_change(sc, tc) {
+                note(Severity::Medium, NoteKind::RoleChange, text);
             }
             match (s.link_of(&sc.name), t.link_of(&tc.name)) {
                 (Some(sf), Some(tf)) => match target_of(&sf.references) {

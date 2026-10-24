@@ -7,7 +7,7 @@
 //! findings is the prototype's: table by table, then the checks that look at
 //! the whole database.
 
-use crate::model::{Schema, Table, table_name};
+use crate::model::{Column, ColumnRole, Schema, Table, TableKind, table_name};
 use crate::types::{Category, type_info};
 
 /// How serious a finding is. Ordered from most to least serious.
@@ -83,6 +83,16 @@ pub const RULES: &[&str] = &[
     "CONTENT-EMPTY",
     "NAME-LINK-COLUMN",
     "KEY-MIXED-GENERATORS",
+];
+
+/// Rule ids of the time-series checks (docs/time-series.md).
+pub const TIME_SERIES_RULES: &[&str] = &[
+    "TS-MEASUREMENT-NO-FIELDS",
+    "TS-FIELD-TYPE-CONFLICT",
+    "TS-FIELD-TYPE-UNKNOWN",
+    "TS-UNSIGNED-FIELD",
+    "TS-TAG-FIELD-SAME-KEY",
+    "TS-HIGH-CARDINALITY",
 ];
 
 /// Words that must be quoted when used as names in SQL (the prototype's list).
@@ -274,8 +284,163 @@ fn push_group<V>(groups: &mut Vec<(String, Vec<V>)>, key: &str, value: V) {
     }
 }
 
-/// Checks one database for structural problems.
+/// Checks one database for structural problems. Relational rules look only
+/// at tables, time-series rules (`TS-*`) only at measurements, so a
+/// relational schema gets exactly the findings it always got.
 pub fn check_schema(schema: &Schema) -> Vec<Finding> {
+    if !schema.is_time_series() {
+        return check_relational(schema);
+    }
+    let relational = Schema {
+        tables: schema
+            .tables
+            .iter()
+            .filter(|t| t.kind == TableKind::Table)
+            .cloned()
+            .collect(),
+        ..schema.clone()
+    };
+    let mut out = check_relational(&relational);
+    out.extend(check_time_series(schema));
+    out
+}
+
+/// Tag names whose values usually grow without bound.
+const UNBOUNDED_TAGS: &[&str] = &["uuid", "request_id", "session_id", "trace_id", "span_id"];
+
+/// Series counts from which a measurement is reported as high-cardinality.
+pub const HIGH_CARDINALITY: i64 = 100_000;
+
+/// The time-series rules, measurement by measurement.
+fn check_time_series(schema: &Schema) -> Vec<Finding> {
+    let mut out = Vec::new();
+    let mut add = |rule: &'static str,
+                   severity,
+                   object: String,
+                   title: &str,
+                   explanation: String,
+                   fix: &str| {
+        out.push(Finding {
+            rule,
+            severity,
+            area: "Time series".into(),
+            object,
+            title: title.into(),
+            explanation,
+            fix: fix.into(),
+        })
+    };
+    for t in schema
+        .tables
+        .iter()
+        .filter(|t| t.kind == TableKind::Measurement)
+    {
+        let fields: Vec<&Column> = t
+            .columns
+            .iter()
+            .filter(|c| c.role == ColumnRole::Field)
+            .collect();
+        if fields.is_empty() {
+            add(
+                "TS-MEASUREMENT-NO-FIELDS",
+                Severity::High,
+                t.name.clone(),
+                "Measurement has no fields",
+                "InfluxDB stores values only in fields, so a measurement without fields holds no data to migrate. The export may be incomplete.".into(),
+                "Check the export, or decide that this measurement is not migrated.",
+            );
+        }
+        for c in &fields {
+            let object = format!("{}.{}", t.name, c.name);
+            if c.type_label.contains(crate::influx::CONFLICT_SEPARATOR) {
+                add(
+                    "TS-FIELD-TYPE-CONFLICT",
+                    Severity::High,
+                    object.clone(),
+                    "Field has more than one type",
+                    format!(
+                        "InfluxDB keeps a field's type per shard, so {} holds values of these types: {}. A typed target column accepts only one of them.",
+                        c.name, c.type_label
+                    ),
+                    "Decide one type (usually the wider one, such as float) and convert the other values when loading.",
+                );
+            } else if c.type_label.is_empty() {
+                add(
+                    "TS-FIELD-TYPE-UNKNOWN",
+                    Severity::Medium,
+                    object.clone(),
+                    "Field type unknown",
+                    format!(
+                        "The export does not say which type {} has (for example because it was made with Flux schema functions, which report names only). Schema Bridge cannot judge whether it fits its target column.",
+                        c.name
+                    ),
+                    "Export the field types (InfluxQL SHOW FIELD KEYS, or the Flux script in export-queries/), or check the values before loading.",
+                );
+            } else if c.type_label == "unsigned" {
+                add(
+                    "TS-UNSIGNED-FIELD",
+                    Severity::Info,
+                    object.clone(),
+                    "Unsigned integer field",
+                    format!(
+                        "{} is an unsigned 64-bit integer. Schema Bridge compares it as a signed 64-bit integer (bigint); values above 9,223,372,036,854,775,807 would not fit.",
+                        c.name
+                    ),
+                    "Check the largest value; use numeric(20,0) in the target if values can exceed the signed range.",
+                );
+            }
+            if c.comment
+                .as_deref()
+                .is_some_and(|n| n.contains(crate::influx::SAME_KEY_NOTE))
+            {
+                add(
+                    "TS-TAG-FIELD-SAME-KEY",
+                    Severity::Medium,
+                    object,
+                    "A tag and a field share a key",
+                    format!(
+                        "{} uses the same key for a tag and a field. Queries return the field as {}, and a target table needs two differently named columns.",
+                        t.name, c.name
+                    ),
+                    "Rename one of them in the target, or keep only one if they hold the same information.",
+                );
+            }
+        }
+        if let Some(series) = t.series.filter(|s| *s >= HIGH_CARDINALITY) {
+            add(
+                "TS-HIGH-CARDINALITY",
+                Severity::Medium,
+                t.name.clone(),
+                "Many series",
+                format!(
+                    "{} has {} series (tag combinations). High cardinality slows InfluxDB and becomes a large, heavily indexed table in a relational target.",
+                    t.name,
+                    crate::workspace::grouped(series)
+                ),
+                "Check whether every tag is needed to identify a point; values such as IDs are usually better stored as fields.",
+            );
+        }
+        for c in t.columns.iter().filter(|c| c.role == ColumnRole::Tag) {
+            if UNBOUNDED_TAGS.iter().any(|u| c.name.to_lowercase() == *u) {
+                add(
+                    "TS-HIGH-CARDINALITY",
+                    Severity::Low,
+                    format!("{}.{}", t.name, c.name),
+                    "Tag may have unbounded values",
+                    format!(
+                        "Every new value of the tag {} creates a new series, and values like this one usually never repeat.",
+                        c.name
+                    ),
+                    "Consider storing it as a field instead of a tag.",
+                );
+            }
+        }
+    }
+    out
+}
+
+/// The relational rules (the prototype's `dbChecks`).
+fn check_relational(schema: &Schema) -> Vec<Finding> {
     let mut out = Vec::new();
     if schema.tables.is_empty() {
         return out;

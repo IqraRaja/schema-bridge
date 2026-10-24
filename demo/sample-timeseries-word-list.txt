@@ -1,0 +1,8 @@
+# WORD LIST for the time-series sample: Plant (InfluxDB) -> Readings (PostgreSQL).
+# One rule per line. Lines starting with # are notes.
+
+# InfluxDB calls its timestamp "time"; the target calls it recorded_at.
+time = recorded_at
+
+# The boiler measurement goes into the general readings table.
+table: boiler = readings

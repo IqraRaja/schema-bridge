@@ -35,6 +35,8 @@ pub enum ExportKind {
 pub enum ImportError {
     /// The file does not look like any supported export.
     Unrecognised,
+    /// The file is a recognised export, but one of its lines is invalid.
+    Invalid { line: usize, reason: String },
 }
 
 impl fmt::Display for ImportError {
@@ -44,6 +46,7 @@ impl fmt::Display for ImportError {
                 f,
                 "This file is not a Schema Bridge export. Use the queries under \"How to export\"."
             ),
+            ImportError::Invalid { line, reason } => write!(f, "Line {line}: {reason}"),
         }
     }
 }

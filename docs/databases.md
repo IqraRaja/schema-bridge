@@ -32,6 +32,7 @@ Through the one-file CSV export ([import formats](import-formats.md)):
 | MySQL / MariaDB | yes, one query for both | not yet |
 | SQL Server 2017+ / Azure SQL | yes | not yet |
 | Oracle 12c+ | yes | not yet |
+| InfluxDB 1.x / 2.x / 3 (time series) | Flux script (2.x, 1.8) and SQL query (3), through the [time-series schema export](time-series.md#the-time-series-schema-export) | not yet |
 
 **Other relational systems** (Db2, SAP HANA, Snowflake, …) can be loaded if
 you write a query that produces the same 21 columns. Schema Bridge then shows
@@ -47,8 +48,9 @@ file you export yourself.
 
 In the development plan, not implemented:
 
-- **Time-series databases**, starting with InfluxDB / InfluxDB-style schemas
-  (see below), then other time-series systems.
+- **Further time-series systems** (Prometheus, OpenTelemetry metrics, other
+  time-series databases), a JSON form of the time-series export, more
+  InfluxDB APIs. InfluxDB itself is supported (see below).
 - A **separate MariaDB** entry where MariaDB differs from MySQL.
 - Running the MySQL, SQL Server and Oracle queries on real servers and fixing
   what they show.
@@ -86,12 +88,11 @@ therefore has **extension points** for them:
 - a measurement's `retention_policy`, and the schema's list of
   `retention_policies`.
 
-**What exists today:** only these model fields, with a test that a
-measurement passes through the analysis without failing. **What does not
-exist yet:** an importer for any time-series system, checks and matching
-rules that use tags, fields and retention policies, and draft SQL for a
-time-series target. Until then, Schema Bridge cannot import or meaningfully
-compare a time-series schema.
-
-The order of work is in the [development plan](development-plan.md)
-(milestone 8) and in [adding a database](adding-a-database.md#case-2-a-system-that-does-not-fit-the-one-file-export).
+**What exists today (milestone 8):** InfluxDB schemas are imported
+through the time-series schema export and fill these fields; measurements
+get their own checks (`TS-*`) and integration rules (`MAP-TS-*`); matching
+shows the nanosecond time precision, unknown field types and tag/field role
+changes; the draft SQL uses CSV staging for an InfluxDB source and is not
+generated for a time-series target. Everything is described in
+[time series](time-series.md). **Not implemented:** live connections,
+line protocol or any write to InfluxDB, and other time-series systems.
