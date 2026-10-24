@@ -1,0 +1,94 @@
+boolean => raw=boolean base=boolean cat=bool size=0 len=null tz=null array=false
+bool => raw=bool base=bool cat=bool size=0 len=null tz=null array=false
+bit => raw=bit base=bit cat=bool size=0 len=null tz=null array=false
+bit(1) => raw=bit(1) base=bit cat=bool size=0 len=1 tz=null array=false
+tinyint(1) => raw=tinyint(1) base=tinyint cat=bool size=0 len=1 tz=null array=false
+tinyint => raw=tinyint base=tinyint cat=int size=1 len=null tz=null array=false
+smallint => raw=smallint base=smallint cat=int size=2 len=null tz=null array=false
+int2 => raw=int2 base=int2 cat=int size=2 len=null tz=null array=false
+year => raw=year base=year cat=int size=2 len=null tz=null array=false
+integer => raw=integer base=integer cat=int size=4 len=null tz=null array=false
+int => raw=int base=int cat=int size=4 len=null tz=null array=false
+int(11) => raw=int(11) base=int cat=int size=4 len=11 tz=null array=false
+int unsigned => raw=int base=int cat=int size=4 len=null tz=null array=false
+int4 => raw=int4 base=int4 cat=int size=4 len=null tz=null array=false
+serial => raw=serial base=serial cat=int size=4 len=null tz=null array=false
+mediumint => raw=mediumint base=mediumint cat=int size=4 len=null tz=null array=false
+bigint => raw=bigint base=bigint cat=int size=8 len=null tz=null array=false
+int8 => raw=int8 base=int8 cat=int size=8 len=null tz=null array=false
+bigserial => raw=bigserial base=bigserial cat=int size=8 len=null tz=null array=false
+real => raw=real base=real cat=float size=4 len=null tz=null array=false
+float4 => raw=float4 base=float4 cat=float size=4 len=null tz=null array=false
+binary_float => raw=binary_float base=binary_float cat=float size=4 len=null tz=null array=false
+double precision => raw=double precision base=double precision cat=float size=8 len=null tz=null array=false
+double => raw=double base=double cat=float size=8 len=null tz=null array=false
+float8 => raw=float8 base=float8 cat=float size=8 len=null tz=null array=false
+float => raw=float base=float cat=float size=8 len=null tz=null array=false
+binary_double => raw=binary_double base=binary_double cat=float size=8 len=null tz=null array=false
+number(4,0) => raw=number(4,0) base=number cat=int size=2 len=4 tz=null array=false
+number(9,0) => raw=number(9,0) base=number cat=int size=4 len=9 tz=null array=false
+number(10,0) => raw=number(10,0) base=number cat=int size=8 len=10 tz=null array=false
+number(18,0) => raw=number(18,0) base=number cat=int size=8 len=18 tz=null array=false
+number(19,0) => raw=number(19,0) base=number cat=numeric size=0 len=19 tz=null array=false
+number(12,2) => raw=number(12,2) base=number cat=numeric size=0 len=12 tz=null array=false
+number => raw=number base=number cat=numeric size=0 len=null tz=null array=false
+numeric => raw=numeric base=numeric cat=numeric size=0 len=null tz=null array=false
+numeric(10,2) => raw=numeric(10,2) base=numeric cat=numeric size=0 len=10 tz=null array=false
+decimal(5,1) => raw=decimal(5,1) base=decimal cat=numeric size=0 len=5 tz=null array=false
+money => raw=money base=money cat=numeric size=0 len=null tz=null array=false
+smallmoney => raw=smallmoney base=smallmoney cat=numeric size=0 len=null tz=null array=false
+character varying(100) => raw=character varying(100) base=character varying cat=text size=100 len=100 tz=null array=false
+character varying => raw=character varying base=character varying cat=text size=unlimited len=null tz=null array=false
+varchar(50) => raw=varchar(50) base=varchar cat=text size=50 len=50 tz=null array=false
+varchar2(30) => raw=varchar2(30) base=varchar2 cat=text size=30 len=30 tz=null array=false
+nvarchar(50) => raw=nvarchar(50) base=nvarchar cat=text size=50 len=50 tz=null array=false
+nvarchar(max) => raw=nvarchar(max) base=nvarchar cat=text size=unlimited len=null tz=null array=false
+nchar(2) => raw=nchar(2) base=nchar cat=text size=2 len=2 tz=null array=false
+char => raw=char base=char cat=text size=unlimited len=null tz=null array=false
+character(5) => raw=character(5) base=character cat=text size=5 len=5 tz=null array=false
+text => raw=text base=text cat=text size=unlimited len=null tz=null array=false
+ntext => raw=ntext base=ntext cat=text size=unlimited len=null tz=null array=false
+mediumtext => raw=mediumtext base=mediumtext cat=text size=unlimited len=null tz=null array=false
+clob => raw=clob base=clob cat=text size=unlimited len=null tz=null array=false
+nclob => raw=nclob base=nclob cat=text size=unlimited len=null tz=null array=false
+citext => raw=citext base=citext cat=text size=unlimited len=null tz=null array=false
+timestamp with time zone => raw=timestamp with time zone base=timestamp with time zone cat=ts size=0 len=null tz=true array=false
+timestamp without time zone => raw=timestamp without time zone base=timestamp without time zone cat=ts size=0 len=null tz=false array=false
+timestamp(0) without time zone => raw=timestamp(0) without time zone base=timestamp without time zone cat=ts size=0 len=0 tz=false array=false
+timestamp(6) with time zone => raw=timestamp(6) with time zone base=timestamp with time zone cat=ts size=0 len=6 tz=true array=false
+timestamp(6) with local time zone => raw=timestamp(6) with local time zone base=timestamp with local time zone cat=ts size=0 len=6 tz=true array=false
+timestamptz => raw=timestamptz base=timestamptz cat=ts size=0 len=null tz=true array=false
+datetime => raw=datetime base=datetime cat=ts size=0 len=null tz=false array=false
+datetime2(7) => raw=datetime2(7) base=datetime2 cat=ts size=0 len=7 tz=false array=false
+smalldatetime => raw=smalldatetime base=smalldatetime cat=ts size=0 len=null tz=false array=false
+datetimeoffset => raw=datetimeoffset base=datetimeoffset cat=ts size=0 len=null tz=true array=false
+date => raw=date base=date cat=date size=0 len=null tz=null array=false
+time => raw=time base=time cat=time size=0 len=null tz=null array=false
+time without time zone => raw=time without time zone base=time without time zone cat=time size=0 len=null tz=null array=false
+uuid => raw=uuid base=uuid cat=uuid size=0 len=null tz=null array=false
+uniqueidentifier => raw=uniqueidentifier base=uniqueidentifier cat=uuid size=0 len=null tz=null array=false
+raw(16) => raw=raw(16) base=raw cat=uuid size=0 len=16 tz=null array=false
+raw(32) => raw=raw(32) base=raw cat=bytea size=0 len=32 tz=null array=false
+json => raw=json base=json cat=json size=0 len=null tz=null array=false
+jsonb => raw=jsonb base=jsonb cat=json size=0 len=null tz=null array=false
+bytea => raw=bytea base=bytea cat=bytea size=0 len=null tz=null array=false
+blob => raw=blob base=blob cat=bytea size=0 len=null tz=null array=false
+longblob => raw=longblob base=longblob cat=bytea size=0 len=null tz=null array=false
+varbinary(max) => raw=varbinary(max) base=varbinary cat=bytea size=0 len=null tz=null array=false
+image => raw=image base=image cat=bytea size=0 len=null tz=null array=false
+xml => raw=xml base=xml cat=xml size=0 len=null tz=null array=false
+xmltype => raw=xmltype base=xmltype cat=xml size=0 len=null tz=null array=false
+interval => raw=interval base=interval cat=interval size=0 len=null tz=null array=false
+interval day to second => raw=interval day to second base=interval day to second cat=interval size=0 len=null tz=null array=false
+integer[] => raw=integer[] base=integer cat=int size=4 len=null tz=null array=true
+uuid[] => raw=uuid[] base=uuid cat=uuid size=0 len=null tz=null array=true
+text[] => raw=text[] base=text cat=text size=unlimited len=null tz=null array=true
+enum('a','b') => raw=enum('a','b') base=enum cat=other size=0 len=null tz=null array=false
+user-defined => raw=user-defined base=user-defined cat=other size=0 len=null tz=null array=false
+geometry => raw=geometry base=geometry cat=other size=0 len=null tz=null array=false
+unsigned big int => raw=unsigned big int base=unsigned big int cat=int size=8 len=null tz=null array=false
+varying character(20) => raw=varying character(20) base=varying character cat=text size=unlimited len=20 tz=null array=false
+double float => raw=double float base=double float cat=float size=8 len=null tz=null array=false
+mediumblob => raw=mediumblob base=mediumblob cat=bytea size=0 len=null tz=null array=false
+int identity => raw=int base=int cat=int size=4 len=null tz=null array=false
+int identity(1,1) => raw=int base=int cat=int size=4 len=null tz=null array=false

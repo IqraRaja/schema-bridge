@@ -1,0 +1,8 @@
+table_schema,table_name,estimated_rows,triggers
+public,asset,0,
+public,asset_type,0,
+public,capability,0,
+public,location,0,
+public,person,0,
+public,session,0,
+public,session_person,0,

@@ -1,0 +1,18 @@
+[package]
+name = "schema-bridge-app"
+description = "Schema Bridge application (Dioxus)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+# Released on GitHub only, never uploaded to crates.io.
+publish = false
+
+[dependencies]
+dioxus = { version = "0.7" }
+schema-bridge-core = { path = "../schema-bridge-core" }
+
+[features]
+default = ["web"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]

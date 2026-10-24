@@ -1,0 +1,10 @@
+# Build output (cargo and dx)
+/target
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/

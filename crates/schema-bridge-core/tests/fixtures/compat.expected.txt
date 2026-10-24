@@ -1,0 +1,65 @@
+uuid | uuid => same lookup=false : Same type
+integer | int => safe lookup=false : Same kind of value
+varchar(100) | text => safe lookup=false : Text fits
+varchar(100) | varchar(50) => loss lookup=false : Target allows 50 characters, source allows 100. Longer values would be rejected.
+text | varchar(10) => loss lookup=false : Target allows 10 characters, source allows any length. Longer values would be rejected.
+nvarchar(max) | varchar(100) => loss lookup=false : Target allows 100 characters, source allows any length. Longer values would be rejected.
+character varying(100) | character varying(100) => same lookup=false : Same type
+boolean | bit => safe lookup=false : Same kind of value
+tinyint(1) | boolean => safe lookup=false : Same kind of value
+smallint | integer => safe lookup=false : Whole number fits
+bigint | integer => loss lookup=false : Target number range is smaller.
+integer | bigint => safe lookup=false : Whole number fits
+integer | double precision => safe lookup=false : Whole number into decimal
+integer | numeric => safe lookup=false : Whole number into decimal
+real | double precision => safe lookup=false : Decimal fits
+double precision | real => loss lookup=false : Target keeps fewer digits.
+real | numeric => safe lookup=false : Decimal fits
+numeric | integer => loss lookup=false : Decimals would be rounded off.
+double precision | integer => loss lookup=false : Decimals would be rounded off.
+timestamp with time zone | timestamp with time zone => same lookup=false : Same type
+timestamp without time zone | timestamp with time zone => convert lookup=false : Source time has no time zone. Say which time zone it was recorded in.
+datetime | timestamptz => convert lookup=false : Source time has no time zone. Say which time zone it was recorded in.
+timestamptz | timestamp => loss lookup=false : Time zone is dropped.
+datetime2(7) | timestamp without time zone => safe lookup=false : Time fits
+date | timestamp => safe lookup=false : Date becomes midnight
+timestamp | date => loss lookup=false : Time of day is dropped.
+json | jsonb => safe lookup=false : Same kind of value
+jsonb | json => safe lookup=false : Same kind of value
+bytea | text => incompatible lookup=false : Binary data cannot be converted automatically.
+text | bytea => incompatible lookup=false : Binary data cannot be converted automatically.
+blob | varbinary(max) => safe lookup=false : Same kind of value
+integer | text => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+uuid | text => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+real | text => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+date | varchar(30) => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+boolean | text => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+text | uuid => convert lookup=true : Source has text, target expects the ID of another record. Each text value must be looked up and replaced by that ID.
+varchar(36) | uuid => convert lookup=true : Source has text, target expects the ID of another record. Each text value must be looked up and replaced by that ID.
+text | integer => convert lookup=false : Every value must be a valid integer. Test with a query first.
+text | boolean => convert lookup=false : Every value must be a valid boolean. Test with a query first.
+text | timestamp with time zone => convert lookup=false : Every value must be a valid timestamp with time zone. Test with a query first.
+text | date => convert lookup=false : Every value must be a valid date. Test with a query first.
+text | jsonb => convert lookup=false : Every value must be a valid jsonb. Test with a query first.
+boolean | integer => convert lookup=false : true/false becomes 1/0.
+boolean | smallint => convert lookup=false : true/false becomes 1/0.
+integer | boolean => incompatible lookup=false : integer and boolean do not fit together.
+enum('a','b') | text => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+text | enum('a','b') => convert lookup=false : Special type enum: check the allowed values.
+geometry | geometry => same lookup=false : Same type
+geometry | text => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+uuid | integer => incompatible lookup=false : uuid and integer do not fit together.
+integer | uuid => incompatible lookup=false : integer and uuid do not fit together.
+date | time => incompatible lookup=false : date and time do not fit together.
+time | date => incompatible lookup=false : time and date do not fit together.
+xml | text => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+text | xml => incompatible lookup=false : text and xml do not fit together.
+interval | integer => incompatible lookup=false : interval and integer do not fit together.
+integer[] | integer[] => same lookup=false : Same type
+uuid[] | uuid[] => same lookup=false : Same type
+uuid[] | text[] => convert lookup=false : Saved as text. Works, but the target can no longer check the value.
+number(10,0) | bigint => safe lookup=false : Same kind of value
+number(10,0) | integer => loss lookup=false : Target number range is smaller.
+nvarchar(50) | character varying(100) => safe lookup=false : Text fits
+datetimeoffset | timestamp without time zone => loss lookup=false : Time zone is dropped.
+smalldatetime | datetime => safe lookup=false : Time fits

@@ -1,0 +1,25 @@
+# WORD LIST for the sample schemas: Workshop (source) -> Catalogue (target).
+# It tells Schema Bridge which names mean the same thing. One rule per line.
+# Lines starting with # are notes. Your own databases need their own list.
+
+# 1. Words that mean the same   (source word = target word)
+machine = asset
+operator = person
+run = session
+label = name
+title = name
+notes = description
+enabled = available
+
+# 2. Whole column names that mean the same
+serial_no = code
+started = time_start
+ended = time_end
+
+# 3. Table pairs you already know   (table: source = target)
+#    Use "none" when a table has no place in the target yet.
+table: machine_function = capability
+
+# 4. Tables that stay in the source system (operational data)
+#    * matches anything
+skip: booking

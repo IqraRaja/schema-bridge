@@ -1,0 +1,30 @@
+# matches
+main.booking | none | automatic | - | - | - | -
+main.machine | none | automatic | - | - | - | -
+main.machine_function | none | automatic | - | - | - | -
+main.operator | none | automatic | - | - | - | -
+main.run | none | automatic | - | - | - | -
+# integration
+Medium | No target | booking | No place in Catalogue for booking | booking (5 columns) has no matching table in Catalogue. | Decide: extend Catalogue with a new table, store the data in a JSON field, or keep it in Workshop only.
+Medium | No target | machine | No place in Catalogue for machine | machine (6 columns) has no matching table in Catalogue. | Decide: extend Catalogue with a new table, store the data in a JSON field, or keep it in Workshop only.
+Medium | No target | machine_function | No place in Catalogue for machine_function | machine_function (5 columns) has no matching table in Catalogue. | Decide: extend Catalogue with a new table, store the data in a JSON field, or keep it in Workshop only.
+Medium | No target | operator | No place in Catalogue for operator | operator (4 columns) has no matching table in Catalogue. | Decide: extend Catalogue with a new table, store the data in a JSON field, or keep it in Workshop only.
+Medium | No target | run | No place in Catalogue for run | run (9 columns) has no matching table in Catalogue. | Decide: extend Catalogue with a new table, store the data in a JSON field, or keep it in Workshop only.
+# order
+# sql
+-- 1. Make the Workshop tables (SQLite) readable inside Catalogue (run once, as admin).
+--    Needs the sqlite_fdw extension. Alternative: export each table to CSV and load it with COPY into staging.
+CREATE EXTENSION IF NOT EXISTS sqlite_fdw;
+CREATE SERVER source_db FOREIGN DATA WRAPPER sqlite_fdw
+  OPTIONS (database '/path/to/file.db');
+CREATE SCHEMA IF NOT EXISTS staging;
+IMPORT FOREIGN SCHEMA public
+  LIMIT TO ()
+  FROM SERVER source_db INTO staging;
+
+-- 2. Load in this order, on the TEST database, inside one transaction
+BEGIN;
+
+
+-- 3. Check the results (counts, links), then:
+-- COMMIT;   or   ROLLBACK;

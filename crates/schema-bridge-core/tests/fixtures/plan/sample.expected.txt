@@ -1,0 +1,136 @@
+# matches
+main.booking | skip | word list | - | - | - | -
+main.machine | automatic | - | public.asset | 0.7600 | public.asset | 0.7600
+main.machine_function | word list | word list | public.capability | - | public.asset | 0.7000
+main.operator | automatic | - | public.person | 0.6000 | public.person | 0.6000
+main.run | automatic | - | public.session | 0.7500 | public.session | 0.7500
+# columns main.machine -> public.asset
+id | uuid | automatic | check | incompatible | High: integer and uuid do not fit together.
+label | name | automatic | ok | safe | 
+serial_no | code | word list | check | same | Medium: Source allows empty values, target requires a value. ; High: Target needs unique values, the source does not guarantee them.
+room | - | - | none | - | 
+power_kw | - | - | none | - | 
+notes | - | - | none | - | 
+required: asset_type_id -> public.asset_type
+trace: add_info
+# columns main.machine_function -> public.capability
+id | uuid | automatic | check | incompatible | High: integer and uuid do not fit together.
+machine_id | - | - | none | - | 
+code | - | - | none | - | 
+title | name | automatic | convert | safe | Medium: Source allows empty values, target requires a value.
+enabled | available | automatic | convert | same | Medium: Source allows empty values, target requires a value.
+required: 
+trace: -
+# columns main.operator -> public.person
+id | uuid | automatic | check | incompatible | High: integer and uuid do not fit together.
+full_name | - | - | none | - | 
+login | - | - | none | - | 
+password_hash | - | - | none | - | 
+required: first_name, last_name
+trace: -
+# columns main.run -> public.session
+id | uuid | automatic | check | incompatible | High: integer and uuid do not fit together.
+title | name | automatic | convert | safe | Medium: Source allows empty values, target requires a value.
+machine_id | - | - | none | - | 
+operator_id | - | - | none | - | 
+started | time_start | word list | convert | convert | Medium: Source time has no time zone. Say which time zone it was recorded in. ; Medium: Source allows empty values, target requires a value.
+ended | time_end | word list | convert | convert | Medium: Source time has no time zone. Say which time zone it was recorded in.
+station_nr | - | - | none | - | 
+settings_xml | - | - | none | - | 
+settings_json | - | - | none | - | 
+required: 
+trace: add_info
+# integration
+Blocking | Mapping | asset.asset_type_id | Required link has no source: asset_type_id | Every row in Catalogue (sample) asset needs a asset_type_id (a link to asset_type). Workshop (sample) machine has nothing that matches it, so the load will fail until someone decides the value. | Decide how to fill it: for example a small lookup list "machine row → asset_type row", or one default value. Then add it to the import.
+High | Duplicates | machine → asset: serial_no → code | Duplicates would be rejected | Catalogue (sample) requires code to be unique, but Workshop (sample) serial_no has no unique rule. If two rows share a value, the import fails. | Run a duplicate check on machine.serial_no before loading.
+High | Mapping | person.first_name | Required value has no source: first_name | Catalogue (sample) person.first_name must be filled, but no operator column matches it. | Map a source column to it, or decide a fixed value.
+High | Mapping | person.last_name | Required value has no source: last_name | Catalogue (sample) person.last_name must be filled, but no operator column matches it. | Map a source column to it, or decide a fixed value.
+Medium | Types | machine → asset: id (integer) → uuid (uuid) | Values may not fit | integer and uuid do not fit together. | Check the longest or largest values before loading.
+Medium | Mapping | machine → asset: serial_no | Empty values would be rejected | These Workshop (sample) columns may be empty, but the matching Catalogue (sample) columns require a value. | Count empty values in the source; decide a default or filter those rows out.
+Medium | Types | machine_function → capability: id (integer) → uuid (uuid) | Values may not fit | integer and uuid do not fit together. | Check the longest or largest values before loading.
+Medium | Mapping | machine_function → capability: title, enabled | Empty values would be rejected | These Workshop (sample) columns may be empty, but the matching Catalogue (sample) columns require a value. | Count empty values in the source; decide a default or filter those rows out.
+Medium | Types | operator → person: id (integer) → uuid (uuid) | Values may not fit | integer and uuid do not fit together. | Check the longest or largest values before loading.
+Medium | Types | run → session: id (integer) → uuid (uuid) | Values may not fit | integer and uuid do not fit together. | Check the longest or largest values before loading.
+Medium | Mapping | run → session: title, started | Empty values would be rejected | These Workshop (sample) columns may be empty, but the matching Catalogue (sample) columns require a value. | Count empty values in the source; decide a default or filter those rows out.
+# order
+public.asset_type | - | -
+public.person | operator | -
+public.session | run | -
+public.asset | machine | -
+public.capability | machine_function | -
+# sql
+-- 1. Make the Workshop (sample) tables (SQLite) readable inside Catalogue (sample) (run once, as admin).
+--    Needs the sqlite_fdw extension. Alternative: export each table to CSV and load it with COPY into staging.
+CREATE EXTENSION IF NOT EXISTS sqlite_fdw;
+CREATE SERVER source_db FOREIGN DATA WRAPPER sqlite_fdw
+  OPTIONS (database '/path/to/file.db');
+CREATE SCHEMA IF NOT EXISTS staging;
+IMPORT FOREIGN SCHEMA main
+  LIMIT TO (machine, machine_function, operator, run)
+  FROM SERVER source_db INTO staging;
+
+-- 2. Load in this order, on the TEST database, inside one transaction
+BEGIN;
+
+-- operator → person
+-- not copied: full_name, login, password_hash
+INSERT INTO public.person (
+  uuid,
+  first_name,
+  last_name
+)
+SELECT
+  NULL /* TODO: id: integer and uuid do not fit together. */,
+  NULL,  -- TODO: required, no source column
+  NULL  -- TODO: required, no source column
+FROM staging.operator s;
+
+-- run → session
+-- not copied: machine_id, operator_id, station_nr, settings_xml, settings_json
+INSERT INTO public.session (
+  uuid,
+  name,
+  time_start,
+  time_end,
+  add_info
+)
+SELECT
+  NULL /* TODO: id: integer and uuid do not fit together. */,
+  s.title,
+  (s.started AT TIME ZONE '<source time zone>'),  -- TODO: confirm the source time zone
+  (s.ended AT TIME ZONE '<source time zone>'),  -- TODO: confirm the source time zone
+  jsonb_build_object('source_system', 'Workshop (sample)', 'source_table', 'run', 'source_id', s.id)  -- keeps the original ID
+FROM staging.run s;
+
+-- machine → asset
+-- not copied: room, power_kw, notes
+INSERT INTO public.asset (
+  uuid,
+  name,
+  code,
+  asset_type_id,
+  add_info
+)
+SELECT
+  NULL /* TODO: id: integer and uuid do not fit together. */,
+  s.label,
+  s.serial_no,
+  NULL,  -- TODO: required link to asset_type, no source column
+  jsonb_build_object('source_system', 'Workshop (sample)', 'source_table', 'machine', 'source_id', s.id)  -- keeps the original ID
+FROM staging.machine s;
+
+-- machine_function → capability
+-- not copied: machine_id, code
+INSERT INTO public.capability (
+  uuid,
+  name,
+  available
+)
+SELECT
+  NULL /* TODO: id: integer and uuid do not fit together. */,
+  s.title,
+  s.enabled
+FROM staging.machine_function s;
+
+-- 3. Check the results (counts, links), then:
+-- COMMIT;   or   ROLLBACK;

@@ -1,0 +1,13 @@
+[package]
+name = "schema-bridge-core"
+description = "Schema model, analysis and integration planning for Schema Bridge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+# Released on GitHub only, never uploaded to crates.io.
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

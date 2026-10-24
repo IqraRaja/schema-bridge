@@ -1,0 +1,17 @@
+table_schema,table_name,constraint_name,constraint_type,definition,ref_schema,ref_table
+public,asset,asset_asset_type_id_fkey,FOREIGN KEY,FOREIGN KEY (asset_type_id) REFERENCES asset_type(uuid),public,asset_type
+public,asset,asset_location_id_fkey,FOREIGN KEY,FOREIGN KEY (location_id) REFERENCES location(uuid),public,location
+public,asset,asset_parent_fkey,FOREIGN KEY,FOREIGN KEY (parent_asset_id) REFERENCES location(uuid) NOT VALID,public,location
+public,asset,asset_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,
+public,asset,asset_code_key,UNIQUE,UNIQUE (code),,
+public,asset_type,asset_type_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,
+public,asset_type,asset_type_name_key,UNIQUE,UNIQUE (name),,
+public,capability,capability_asset_type_id_fkey,FOREIGN KEY,FOREIGN KEY (asset_type_id) REFERENCES asset_type(uuid),public,asset_type
+public,capability,capability_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,
+public,location,location_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,
+public,person,person_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,
+public,session,session_time_check,CHECK,CHECK (((time_end IS NULL) OR (time_end >= time_start))),,
+public,session,session_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,
+public,session_person,session_person_person_id_fkey,FOREIGN KEY,FOREIGN KEY (person_id) REFERENCES person(uuid),public,person
+public,session_person,session_person_session_id_fkey,FOREIGN KEY,FOREIGN KEY (session_id) REFERENCES session(uuid),public,session
+public,session_person,session_person_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,

@@ -1,0 +1,10 @@
+table_schema,table_name,indexname,indexdef
+public,asset,asset_code_key,CREATE UNIQUE INDEX asset_code_key ON public.asset USING btree (code)
+public,asset,asset_pkey,CREATE UNIQUE INDEX asset_pkey ON public.asset USING btree (uuid)
+public,asset_type,asset_type_name_key,CREATE UNIQUE INDEX asset_type_name_key ON public.asset_type USING btree (name)
+public,asset_type,asset_type_pkey,CREATE UNIQUE INDEX asset_type_pkey ON public.asset_type USING btree (uuid)
+public,capability,capability_pkey,CREATE UNIQUE INDEX capability_pkey ON public.capability USING btree (uuid)
+public,location,location_pkey,CREATE UNIQUE INDEX location_pkey ON public.location USING btree (uuid)
+public,person,person_pkey,CREATE UNIQUE INDEX person_pkey ON public.person USING btree (uuid)
+public,session,session_pkey,CREATE UNIQUE INDEX session_pkey ON public.session USING btree (uuid)
+public,session_person,session_person_pkey,CREATE UNIQUE INDEX session_person_pkey ON public.session_person USING btree (uuid)

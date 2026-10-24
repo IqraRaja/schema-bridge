@@ -1,0 +1,68 @@
+record_type,table_schema,table_name,object_type,ordinal_position,column_name,data_type,is_nullable,column_default,table_comment,column_comment,constraint_name,constraint_type,definition,ref_schema,ref_table,indexname,indexdef,estimated_rows,triggers,dbms
+column,public,asset,table,6,code,text,false,,"One physical asset (a single machine, sensor or instrument).",Short unique code printed on the asset label.,,,,,,,,,,postgresql
+column,public,asset,table,7,description,text,true,,"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset,table,8,add_info,jsonb,true,,"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset,table,9,start,timestamp without time zone,false,LOCALTIMESTAMP,"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset,table,1,uuid,uuid,false,gen_random_uuid(),"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset,table,10,end,timestamp with time zone,true,,"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset,table,2,asset_type_id,uuid,false,,"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset,table,3,parent_asset_id,uuid,true,,"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset,table,4,location_id,uuid,true,,"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset,table,5,name,text,true,,"One physical asset (a single machine, sensor or instrument).",,,,,,,,,,,postgresql
+column,public,asset_type,table,3,description,text,true,,,,,,,,,,,,,postgresql
+column,public,asset_type,table,1,uuid,uuid,false,gen_random_uuid(),,,,,,,,,,,,postgresql
+column,public,asset_type,table,2,name,text,false,,,,,,,,,,,,,postgresql
+column,public,capability,table,1,uuid,uuid,false,gen_random_uuid(),What an asset type can do.,,,,,,,,,,,postgresql
+column,public,capability,table,3,name,text,false,,What an asset type can do.,,,,,,,,,,,postgresql
+column,public,capability,table,4,description,text,true,,What an asset type can do.,,,,,,,,,,,postgresql
+column,public,capability,table,5,available,boolean,false,,What an asset type can do.,,,,,,,,,,,postgresql
+column,public,capability,table,2,asset_type_id,uuid,true,,What an asset type can do.,,,,,,,,,,,postgresql
+column,public,location,table,3,building,text,true,,,,,,,,,,,,,postgresql
+column,public,location,table,2,name,text,false,,,,,,,,,,,,,postgresql
+column,public,location,table,1,uuid,uuid,false,gen_random_uuid(),,,,,,,,,,,,postgresql
+column,public,person,table,1,uuid,uuid,false,gen_random_uuid(),,,,,,,,,,,,postgresql
+column,public,person,table,2,first_name,text,false,,,,,,,,,,,,,postgresql
+column,public,person,table,3,last_name,text,false,,,,,,,,,,,,,postgresql
+column,public,person,table,4,orcid,text,true,,,,,,,,,,,,,postgresql
+column,public,session,table,6,add_info,jsonb,true,,,,,,,,,,,,,postgresql
+column,public,session,table,1,uuid,uuid,false,gen_random_uuid(),,,,,,,,,,,,postgresql
+column,public,session,table,2,name,text,false,,,,,,,,,,,,,postgresql
+column,public,session,table,3,description,text,true,,,,,,,,,,,,,postgresql
+column,public,session,table,4,time_start,timestamp with time zone,false,,,,,,,,,,,,,postgresql
+column,public,session,table,5,time_end,timestamp with time zone,true,,,,,,,,,,,,,postgresql
+column,public,session_person,table,4,role,text,false,,,,,,,,,,,,,postgresql
+column,public,session_person,table,2,session_id,uuid,false,,,,,,,,,,,,,postgresql
+column,public,session_person,table,3,person_id,uuid,false,,,,,,,,,,,,,postgresql
+column,public,session_person,table,1,uuid,uuid,false,gen_random_uuid(),,,,,,,,,,,,postgresql
+constraint,public,asset,,,,,,,,,asset_location_id_fkey,FOREIGN KEY,FOREIGN KEY (location_id) REFERENCES location(uuid),public,location,,,,,postgresql
+constraint,public,asset,,,,,,,,,asset_code_key,UNIQUE,UNIQUE (code),,,,,,,postgresql
+constraint,public,asset,,,,,,,,,asset_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,,,,,,postgresql
+constraint,public,asset,,,,,,,,,asset_parent_fkey,FOREIGN KEY,FOREIGN KEY (parent_asset_id) REFERENCES location(uuid) NOT VALID,public,location,,,,,postgresql
+constraint,public,asset,,,,,,,,,asset_asset_type_id_fkey,FOREIGN KEY,FOREIGN KEY (asset_type_id) REFERENCES asset_type(uuid),public,asset_type,,,,,postgresql
+constraint,public,asset_type,,,,,,,,,asset_type_name_key,UNIQUE,UNIQUE (name),,,,,,,postgresql
+constraint,public,asset_type,,,,,,,,,asset_type_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,,,,,,postgresql
+constraint,public,capability,,,,,,,,,capability_asset_type_id_fkey,FOREIGN KEY,FOREIGN KEY (asset_type_id) REFERENCES asset_type(uuid),public,asset_type,,,,,postgresql
+constraint,public,capability,,,,,,,,,capability_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,,,,,,postgresql
+constraint,public,location,,,,,,,,,location_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,,,,,,postgresql
+constraint,public,person,,,,,,,,,person_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,,,,,,postgresql
+constraint,public,session,,,,,,,,,session_time_check,CHECK,CHECK (((time_end IS NULL) OR (time_end >= time_start))),,,,,,,postgresql
+constraint,public,session,,,,,,,,,session_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,,,,,,postgresql
+constraint,public,session_person,,,,,,,,,session_person_session_id_fkey,FOREIGN KEY,FOREIGN KEY (session_id) REFERENCES session(uuid),public,session,,,,,postgresql
+constraint,public,session_person,,,,,,,,,session_person_pkey,PRIMARY KEY,PRIMARY KEY (uuid),,,,,,,postgresql
+constraint,public,session_person,,,,,,,,,session_person_person_id_fkey,FOREIGN KEY,FOREIGN KEY (person_id) REFERENCES person(uuid),public,person,,,,,postgresql
+index,public,asset,,,,,,,,,,,,,,asset_code_key,CREATE UNIQUE INDEX asset_code_key ON public.asset USING btree (code),,,postgresql
+index,public,asset,,,,,,,,,,,,,,asset_pkey,CREATE UNIQUE INDEX asset_pkey ON public.asset USING btree (uuid),,,postgresql
+index,public,asset_type,,,,,,,,,,,,,,asset_type_pkey,CREATE UNIQUE INDEX asset_type_pkey ON public.asset_type USING btree (uuid),,,postgresql
+index,public,asset_type,,,,,,,,,,,,,,asset_type_name_key,CREATE UNIQUE INDEX asset_type_name_key ON public.asset_type USING btree (name),,,postgresql
+index,public,capability,,,,,,,,,,,,,,capability_pkey,CREATE UNIQUE INDEX capability_pkey ON public.capability USING btree (uuid),,,postgresql
+index,public,location,,,,,,,,,,,,,,location_pkey,CREATE UNIQUE INDEX location_pkey ON public.location USING btree (uuid),,,postgresql
+index,public,person,,,,,,,,,,,,,,person_pkey,CREATE UNIQUE INDEX person_pkey ON public.person USING btree (uuid),,,postgresql
+index,public,session,,,,,,,,,,,,,,session_pkey,CREATE UNIQUE INDEX session_pkey ON public.session USING btree (uuid),,,postgresql
+index,public,session_person,,,,,,,,,,,,,,session_person_pkey,CREATE UNIQUE INDEX session_person_pkey ON public.session_person USING btree (uuid),,,postgresql
+table,public,asset,,,,,,,,,,,,,,,,0,,postgresql
+table,public,asset_type,,,,,,,,,,,,,,,,0,,postgresql
+table,public,capability,,,,,,,,,,,,,,,,0,,postgresql
+table,public,location,,,,,,,,,,,,,,,,0,,postgresql
+table,public,person,,,,,,,,,,,,,,,,0,,postgresql
+table,public,session,,,,,,,,,,,,,,,,0,,postgresql
+table,public,session_person,,,,,,,,,,,,,,,,0,,postgresql

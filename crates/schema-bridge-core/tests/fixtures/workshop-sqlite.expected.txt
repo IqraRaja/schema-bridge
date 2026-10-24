@@ -1,0 +1,46 @@
+dbms=sqlite
+has=cols:1,cons:1,idx:1,rows:1
+views=
+table main.booking schema=main name=booking rows=null triggers= comment=null
+  col 1 id label=integer type=integer nullable=false default=null comment=null
+  col 2 machine_id label=integer type=integer nullable=true default=null comment=null
+  col 3 station_nr label=smallint type=smallint nullable=true default=null comment=null
+  col 4 start_at label=datetime type=datetime nullable=true default=null comment=null
+  col 5 end_at label=datetime type=datetime nullable=true default=null comment=null
+  pk=id pk_name=booking_pkey
+  fk booking_fk0 (machine_id) -> main.machine(id) not_valid=false on_delete=null
+table main.machine schema=main name=machine rows=null triggers= comment=null
+  col 1 id label=integer type=integer nullable=false default=null comment=null
+  col 2 label label=varchar(80) type=varchar(80) nullable=false default=null comment=null
+  col 3 serial_no label=text type=text nullable=true default=null comment=null
+  col 4 room label=text type=text nullable=true default=null comment=null
+  col 5 power_kw label=real type=real nullable=true default=null comment=null
+  col 6 notes label=text type=text nullable=true default=null comment=null
+  pk=id pk_name=machine_pkey
+table main.machine_function schema=main name=machine_function rows=null triggers= comment=null
+  col 1 id label=integer type=integer nullable=false default=null comment=null
+  col 2 machine_id label=integer type=integer nullable=true default=null comment=null
+  col 3 code label=smallint type=smallint nullable=true default=null comment=null
+  col 4 title label=varchar(60) type=varchar(60) nullable=true default=null comment=null
+  col 5 enabled label=boolean type=boolean nullable=true default=null comment=null
+  pk=id pk_name=machine_function_pkey
+table main.operator schema=main name=operator rows=null triggers= comment=null
+  col 1 id label=integer type=integer nullable=false default=null comment=null
+  col 2 full_name label=varchar(100) type=varchar(100) nullable=false default=null comment=null
+  col 3 login label=varchar(30) type=varchar(30) nullable=true default=null comment=null
+  col 4 password_hash label=text type=text nullable=true default=null comment=null
+  pk=id pk_name=operator_pkey
+table main.run schema=main name=run rows=null triggers= comment=null
+  col 1 id label=integer type=integer nullable=false default=null comment=null
+  col 2 title label=varchar(100) type=varchar(100) nullable=true default=null comment=null
+  col 3 machine_id label=integer type=integer nullable=true default=null comment=null
+  col 4 operator_id label=integer type=integer nullable=true default=null comment=null
+  col 5 started label=datetime type=datetime nullable=true default=null comment=null
+  col 6 ended label=datetime type=datetime nullable=true default=null comment=null
+  col 7 station_nr label=smallint type=smallint nullable=true default=0 comment=null
+  col 8 settings_xml label=text type=text nullable=true default=null comment=null
+  col 9 settings_json label=text type=text nullable=true default=null comment=null
+  pk=id pk_name=run_pkey
+  fk run_fk0 (operator_id) -> main.operator(id) not_valid=false on_delete=null
+  fk run_fk1 (machine_id) -> main.machine(id) not_valid=false on_delete=null
+  idx ix_run_machine unique=false partial=false (machine_id)

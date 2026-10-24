@@ -1,0 +1,94 @@
+boolean
+bool
+bit
+bit(1)
+tinyint(1)
+tinyint
+smallint
+int2
+year
+integer
+int
+int(11)
+int unsigned
+int4
+serial
+mediumint
+bigint
+int8
+bigserial
+real
+float4
+binary_float
+double precision
+double
+float8
+float
+binary_double
+number(4,0)
+number(9,0)
+number(10,0)
+number(18,0)
+number(19,0)
+number(12,2)
+number
+numeric
+numeric(10,2)
+decimal(5,1)
+money
+smallmoney
+character varying(100)
+character varying
+varchar(50)
+varchar2(30)
+nvarchar(50)
+nvarchar(max)
+nchar(2)
+char
+character(5)
+text
+ntext
+mediumtext
+clob
+nclob
+citext
+timestamp with time zone
+timestamp without time zone
+timestamp(0) without time zone
+timestamp(6) with time zone
+timestamp(6) with local time zone
+timestamptz
+datetime
+datetime2(7)
+smalldatetime
+datetimeoffset
+date
+time
+time without time zone
+uuid
+uniqueidentifier
+raw(16)
+raw(32)
+json
+jsonb
+bytea
+blob
+longblob
+varbinary(max)
+image
+xml
+xmltype
+interval
+interval day to second
+integer[]
+uuid[]
+text[]
+enum('a','b')
+user-defined
+geometry
+unsigned big int
+varying character(20)
+double float
+mediumblob
+int identity
+int identity(1,1)

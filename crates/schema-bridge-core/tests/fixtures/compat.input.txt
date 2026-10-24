@@ -1,0 +1,65 @@
+uuid|uuid
+integer|int
+varchar(100)|text
+varchar(100)|varchar(50)
+text|varchar(10)
+nvarchar(max)|varchar(100)
+character varying(100)|character varying(100)
+boolean|bit
+tinyint(1)|boolean
+smallint|integer
+bigint|integer
+integer|bigint
+integer|double precision
+integer|numeric
+real|double precision
+double precision|real
+real|numeric
+numeric|integer
+double precision|integer
+timestamp with time zone|timestamp with time zone
+timestamp without time zone|timestamp with time zone
+datetime|timestamptz
+timestamptz|timestamp
+datetime2(7)|timestamp without time zone
+date|timestamp
+timestamp|date
+json|jsonb
+jsonb|json
+bytea|text
+text|bytea
+blob|varbinary(max)
+integer|text
+uuid|text
+real|text
+date|varchar(30)
+boolean|text
+text|uuid
+varchar(36)|uuid
+text|integer
+text|boolean
+text|timestamp with time zone
+text|date
+text|jsonb
+boolean|integer
+boolean|smallint
+integer|boolean
+enum('a','b')|text
+text|enum('a','b')
+geometry|geometry
+geometry|text
+uuid|integer
+integer|uuid
+date|time
+time|date
+xml|text
+text|xml
+interval|integer
+integer[]|integer[]
+uuid[]|uuid[]
+uuid[]|text[]
+number(10,0)|bigint
+number(10,0)|integer
+nvarchar(50)|character varying(100)
+datetimeoffset|timestamp without time zone
+smalldatetime|datetime

@@ -1,0 +1,58 @@
+record_type,table_schema,table_name,object_type,ordinal_position,column_name,data_type,is_nullable,column_default,table_comment,column_comment,constraint_name,constraint_type,definition,ref_schema,ref_table,indexname,indexdef,estimated_rows,triggers,dbms
+column,public,audit_log,table,2,note,text,true,,,,,,,,,,,,,postgresql
+column,public,audit_log,table,1,happened_at,timestamp with time zone,true,,,,,,,,,,,,,postgresql
+column,public,book,table,2,title,text,false,,,,,,,,,,,,,postgresql
+column,public,book,table,1,id,uuid,false,uuid_generate_v4(),,,,,,,,,,,,postgresql
+column,public,book,table,5,summary_json,jsonb,true,,,,,,,,,,,,,postgresql
+column,public,book,table,4,summary_xml,text,true,,,,,,,,,,,,,postgresql
+column,public,book,table,3,isbn,text,true,,,,,,,,,,,,,postgresql
+column,public,book_copy,table,1,id,uuid,false,gen_random_uuid(),,,,,,,,,,,,postgresql
+column,public,book_copy,table,2,shelf,text,true,,,,,,,,,,,,,postgresql
+column,public,branch,table,2,name,text,false,,,,,,,,,,,,,postgresql
+column,public,branch,table,1,id,integer,false,,,,,,,,,,,,,postgresql
+column,public,loan,table,4,external_ref,uuid,true,,,,,,,,,,,,,postgresql
+column,public,loan,table,1,id,integer,false,,,,,,,,,,,,,postgresql
+column,public,loan,table,2,member_id,uuid,true,,,,,,,,,,,,,postgresql
+column,public,loan,table,3,book_id,uuid,true,,,,,,,,,,,,,postgresql
+column,public,loan,table,5,branch_code,integer,true,,,,,,,,,,,,,postgresql
+column,public,loan,table,6,order,integer,true,,,,,,,,,,,,,postgresql
+column,public,loan_item,table,1,loan_id,integer,false,,,,,,,,,,,,,postgresql
+column,public,loan_item,table,3,id,integer,true,,,,,,,,,,,,,postgresql
+column,public,loan_item,table,2,book_id,uuid,false,,,,,,,,,,,,,postgresql
+column,public,member,table,5,favourite_ids,uuid[],true,,,,,,,,,,,,,postgresql
+column,public,member,table,4,api_token,text,true,,,,,,,,,,,,,postgresql
+column,public,member,table,3,password,text,true,,,,,,,,,,,,,postgresql
+column,public,member,table,2,email,text,true,,,Contact address.,,,,,,,,,,postgresql
+column,public,member,table,1,id,uuid,false,gen_random_uuid(),,,,,,,,,,,,postgresql
+column,public,member,table,9,left_at,timestamp without time zone,true,,,,,,,,,,,,,postgresql
+column,public,member,table,8,joined_at,timestamp with time zone,true,,,,,,,,,,,,,postgresql
+column,public,member,table,7,user,text,true,,,,,,,,,,,,,postgresql
+column,public,member,table,6,branch_code,smallint,true,,,,,,,,,,,,,postgresql
+constraint,public,book,,,,,,,,,book_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,postgresql
+constraint,public,book_copy,,,,,,,,,book_copy_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,postgresql
+constraint,public,branch,,,,,,,,,fk_branch,PRIMARY KEY,PRIMARY KEY (id),,,,,,,postgresql
+constraint,public,loan,,,,,,,,,pk_loan_book,FOREIGN KEY,FOREIGN KEY (book_id) REFERENCES book_copy(id),public,book_copy,,,,,postgresql
+constraint,public,loan,,,,,,,,,loan_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,postgresql
+constraint,public,loan,,,,,,,,,Loan Member,FOREIGN KEY,FOREIGN KEY (member_id) REFERENCES member(id) NOT VALID,public,member,,,,,postgresql
+constraint,public,loan_item,,,,,,,,,loan_item_book_id_fkey,FOREIGN KEY,FOREIGN KEY (book_id) REFERENCES book(id),public,book,,,,,postgresql
+constraint,public,loan_item,,,,,,,,,loan_item_loan_id_fkey,FOREIGN KEY,FOREIGN KEY (loan_id) REFERENCES loan(id),public,loan,,,,,postgresql
+constraint,public,loan_item,,,,,,,,,loan_item_pkey,PRIMARY KEY,"PRIMARY KEY (loan_id, book_id)",,,,,,,postgresql
+constraint,public,member,,,,,,,,,member_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,postgresql
+constraint,public,member,,,,,,,,,member_email_key,UNIQUE,UNIQUE (email),,,,,,,postgresql
+index,public,book,,,,,,,,,,,,,,book_pkey,CREATE UNIQUE INDEX book_pkey ON public.book USING btree (id),,,postgresql
+index,public,book,,,,,,,,,,,,,,ix_book_title,CREATE INDEX ix_book_title ON public.book USING btree (title),,,postgresql
+index,public,book,,,,,,,,,,,,,,ix_book_title_again,CREATE INDEX ix_book_title_again ON public.book USING btree (title),,,postgresql
+index,public,book_copy,,,,,,,,,,,,,,book_copy_pkey,CREATE UNIQUE INDEX book_copy_pkey ON public.book_copy USING btree (id),,,postgresql
+index,public,branch,,,,,,,,,,,,,,fk_branch,CREATE UNIQUE INDEX fk_branch ON public.branch USING btree (id),,,postgresql
+index,public,loan,,,,,,,,,,,,,,ix_loan_member,CREATE INDEX ix_loan_member ON public.loan USING btree (member_id),,,postgresql
+index,public,loan,,,,,,,,,,,,,,loan_pkey,CREATE UNIQUE INDEX loan_pkey ON public.loan USING btree (id),,,postgresql
+index,public,loan_item,,,,,,,,,,,,,,loan_item_pkey,"CREATE UNIQUE INDEX loan_item_pkey ON public.loan_item USING btree (loan_id, book_id)",,,postgresql
+index,public,member,,,,,,,,,,,,,,member_email_key,CREATE UNIQUE INDEX member_email_key ON public.member USING btree (email),,,postgresql
+index,public,member,,,,,,,,,,,,,,member_pkey,CREATE UNIQUE INDEX member_pkey ON public.member USING btree (id),,,postgresql
+table,public,audit_log,,,,,,,,,,,,,,,,-1,,postgresql
+table,public,book,,,,,,,,,,,,,,,,-1,,postgresql
+table,public,book_copy,,,,,,,,,,,,,,,,-1,,postgresql
+table,public,branch,,,,,,,,,,,,,,,,1,,postgresql
+table,public,loan,,,,,,,,,,,,,,,,-1,,postgresql
+table,public,loan_item,,,,,,,,,,,,,,,,-1,,postgresql
+table,public,member,,,,,,,,,,,,,,,,-1,,postgresql

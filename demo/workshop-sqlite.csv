@@ -1,0 +1,44 @@
+record_type,table_schema,table_name,object_type,ordinal_position,column_name,data_type,is_nullable,column_default,table_comment,column_comment,constraint_name,constraint_type,definition,ref_schema,ref_table,indexname,indexdef,estimated_rows,triggers,dbms
+column,main,booking,table,1,id,integer,false,,,,,,,,,,,,,sqlite
+column,main,booking,table,2,machine_id,integer,true,,,,,,,,,,,,,sqlite
+column,main,booking,table,3,station_nr,smallint,true,,,,,,,,,,,,,sqlite
+column,main,booking,table,4,start_at,datetime,true,,,,,,,,,,,,,sqlite
+column,main,booking,table,5,end_at,datetime,true,,,,,,,,,,,,,sqlite
+column,main,machine,table,1,id,integer,false,,,,,,,,,,,,,sqlite
+column,main,machine,table,2,label,varchar(80),false,,,,,,,,,,,,,sqlite
+column,main,machine,table,3,serial_no,text,true,,,,,,,,,,,,,sqlite
+column,main,machine,table,4,room,text,true,,,,,,,,,,,,,sqlite
+column,main,machine,table,5,power_kw,real,true,,,,,,,,,,,,,sqlite
+column,main,machine,table,6,notes,text,true,,,,,,,,,,,,,sqlite
+column,main,machine_function,table,1,id,integer,false,,,,,,,,,,,,,sqlite
+column,main,machine_function,table,2,machine_id,integer,true,,,,,,,,,,,,,sqlite
+column,main,machine_function,table,3,code,smallint,true,,,,,,,,,,,,,sqlite
+column,main,machine_function,table,4,title,varchar(60),true,,,,,,,,,,,,,sqlite
+column,main,machine_function,table,5,enabled,boolean,true,,,,,,,,,,,,,sqlite
+column,main,operator,table,1,id,integer,false,,,,,,,,,,,,,sqlite
+column,main,operator,table,2,full_name,varchar(100),false,,,,,,,,,,,,,sqlite
+column,main,operator,table,3,login,varchar(30),true,,,,,,,,,,,,,sqlite
+column,main,operator,table,4,password_hash,text,true,,,,,,,,,,,,,sqlite
+column,main,run,table,1,id,integer,false,,,,,,,,,,,,,sqlite
+column,main,run,table,2,title,varchar(100),true,,,,,,,,,,,,,sqlite
+column,main,run,table,3,machine_id,integer,true,,,,,,,,,,,,,sqlite
+column,main,run,table,4,operator_id,integer,true,,,,,,,,,,,,,sqlite
+column,main,run,table,5,started,datetime,true,,,,,,,,,,,,,sqlite
+column,main,run,table,6,ended,datetime,true,,,,,,,,,,,,,sqlite
+column,main,run,table,7,station_nr,smallint,true,0,,,,,,,,,,,,sqlite
+column,main,run,table,8,settings_xml,text,true,,,,,,,,,,,,,sqlite
+column,main,run,table,9,settings_json,text,true,,,,,,,,,,,,,sqlite
+constraint,main,booking,,,,,,,,,booking_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,sqlite
+constraint,main,booking,,,,,,,,,booking_fk0,FOREIGN KEY,FOREIGN KEY (machine_id) REFERENCES machine(id),main,machine,,,,,sqlite
+constraint,main,machine,,,,,,,,,machine_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,sqlite
+constraint,main,machine_function,,,,,,,,,machine_function_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,sqlite
+constraint,main,operator,,,,,,,,,operator_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,sqlite
+constraint,main,run,,,,,,,,,run_pkey,PRIMARY KEY,PRIMARY KEY (id),,,,,,,sqlite
+constraint,main,run,,,,,,,,,run_fk0,FOREIGN KEY,FOREIGN KEY (operator_id) REFERENCES operator(id),main,operator,,,,,sqlite
+constraint,main,run,,,,,,,,,run_fk1,FOREIGN KEY,FOREIGN KEY (machine_id) REFERENCES machine(id),main,machine,,,,,sqlite
+index,main,run,,,,,,,,,,,,,,ix_run_machine,CREATE INDEX ix_run_machine ON run (machine_id),,,sqlite
+table,main,booking,,,,,,,,,,,,,,,,,,sqlite
+table,main,machine,,,,,,,,,,,,,,,,,,sqlite
+table,main,machine_function,,,,,,,,,,,,,,,,,,sqlite
+table,main,operator,,,,,,,,,,,,,,,,,,sqlite
+table,main,run,,,,,,,,,,,,,,,,,,sqlite

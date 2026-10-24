@@ -1,0 +1,70 @@
+dbms=postgresql
+has=cols:1,cons:1,idx:1,rows:1
+views=
+table public.asset schema=public name=asset rows=0 triggers= comment=One physical asset (a single machine, sensor or instrument).
+  col 1 uuid label=uuid type=uuid nullable=false default=gen_random_uuid() comment=null
+  col 2 asset_type_id label=uuid type=uuid nullable=false default=null comment=null
+  col 3 parent_asset_id label=uuid type=uuid nullable=true default=null comment=null
+  col 4 location_id label=uuid type=uuid nullable=true default=null comment=null
+  col 5 name label=text type=text nullable=true default=null comment=null
+  col 6 code label=text type=text nullable=false default=null comment=Short unique code printed on the asset label.
+  col 7 description label=text type=text nullable=true default=null comment=null
+  col 8 add_info label=jsonb type=jsonb nullable=true default=null comment=null
+  col 9 start label=timestamp without time zone type=timestamp without time zone nullable=false default=LOCALTIMESTAMP comment=null
+  col 10 end label=timestamp with time zone type=timestamp with time zone nullable=true default=null comment=null
+  pk=uuid pk_name=asset_pkey
+  uq asset_code_key (code)
+  fk asset_location_id_fkey (location_id) -> public.location(uuid) not_valid=false on_delete=null
+  fk asset_parent_fkey (parent_asset_id) -> public.location(uuid) not_valid=true on_delete=null
+  fk asset_asset_type_id_fkey (asset_type_id) -> public.asset_type(uuid) not_valid=false on_delete=null
+  idx asset_code_key unique=true partial=false (code)
+  idx asset_pkey unique=true partial=false (uuid)
+table public.asset_type schema=public name=asset_type rows=0 triggers= comment=null
+  col 1 uuid label=uuid type=uuid nullable=false default=gen_random_uuid() comment=null
+  col 2 name label=text type=text nullable=false default=null comment=null
+  col 3 description label=text type=text nullable=true default=null comment=null
+  pk=uuid pk_name=asset_type_pkey
+  uq asset_type_name_key (name)
+  idx asset_type_pkey unique=true partial=false (uuid)
+  idx asset_type_name_key unique=true partial=false (name)
+table public.capability schema=public name=capability rows=0 triggers= comment=What an asset type can do.
+  col 1 uuid label=uuid type=uuid nullable=false default=gen_random_uuid() comment=null
+  col 2 asset_type_id label=uuid type=uuid nullable=true default=null comment=null
+  col 3 name label=text type=text nullable=false default=null comment=null
+  col 4 description label=text type=text nullable=true default=null comment=null
+  col 5 available label=boolean type=boolean nullable=false default=null comment=null
+  pk=uuid pk_name=capability_pkey
+  fk capability_asset_type_id_fkey (asset_type_id) -> public.asset_type(uuid) not_valid=false on_delete=null
+  idx capability_pkey unique=true partial=false (uuid)
+table public.location schema=public name=location rows=0 triggers= comment=null
+  col 1 uuid label=uuid type=uuid nullable=false default=gen_random_uuid() comment=null
+  col 2 name label=text type=text nullable=false default=null comment=null
+  col 3 building label=text type=text nullable=true default=null comment=null
+  pk=uuid pk_name=location_pkey
+  idx location_pkey unique=true partial=false (uuid)
+table public.person schema=public name=person rows=0 triggers= comment=null
+  col 1 uuid label=uuid type=uuid nullable=false default=gen_random_uuid() comment=null
+  col 2 first_name label=text type=text nullable=false default=null comment=null
+  col 3 last_name label=text type=text nullable=false default=null comment=null
+  col 4 orcid label=text type=text nullable=true default=null comment=null
+  pk=uuid pk_name=person_pkey
+  idx person_pkey unique=true partial=false (uuid)
+table public.session schema=public name=session rows=0 triggers= comment=null
+  col 1 uuid label=uuid type=uuid nullable=false default=gen_random_uuid() comment=null
+  col 2 name label=text type=text nullable=false default=null comment=null
+  col 3 description label=text type=text nullable=true default=null comment=null
+  col 4 time_start label=timestamp with time zone type=timestamp with time zone nullable=false default=null comment=null
+  col 5 time_end label=timestamp with time zone type=timestamp with time zone nullable=true default=null comment=null
+  col 6 add_info label=jsonb type=jsonb nullable=true default=null comment=null
+  pk=uuid pk_name=session_pkey
+  check session_time_check CHECK (((time_end IS NULL) OR (time_end >= time_start)))
+  idx session_pkey unique=true partial=false (uuid)
+table public.session_person schema=public name=session_person rows=0 triggers= comment=null
+  col 1 uuid label=uuid type=uuid nullable=false default=gen_random_uuid() comment=null
+  col 2 session_id label=uuid type=uuid nullable=false default=null comment=null
+  col 3 person_id label=uuid type=uuid nullable=false default=null comment=null
+  col 4 role label=text type=text nullable=false default=null comment=null
+  pk=uuid pk_name=session_person_pkey
+  fk session_person_session_id_fkey (session_id) -> public.session(uuid) not_valid=false on_delete=null
+  fk session_person_person_id_fkey (person_id) -> public.person(uuid) not_valid=false on_delete=null
+  idx session_person_pkey unique=true partial=false (uuid)

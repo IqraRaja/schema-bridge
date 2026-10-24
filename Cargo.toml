@@ -1,0 +1,12 @@
+[workspace]
+resolver = "3"
+members = ["crates/schema-bridge-core", "crates/schema-bridge-app"]
+# `cargo test` and `cargo check` at the root cover the core library. The app is
+# built for the browser (WebAssembly) by `dx serve`; see README.md.
+default-members = ["crates/schema-bridge-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
