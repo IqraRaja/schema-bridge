@@ -1,0 +1,105 @@
+# Continuous integration: the checks from CONTRIBUTING.md ("Before every
+# change is shared"), run on every push to main or develop and on every pull
+# request into main.
+#
+# The workspace's default member is the core library, so `cargo check`,
+# `cargo test` and `cargo clippy` at the root cover crates/schema-bridge-core.
+# The application (crates/schema-bridge-app) is a Dioxus web app and is
+# checked for the wasm32-unknown-unknown target, then built with the Dioxus
+# CLI exactly as `dx build --package schema-bridge-app --release`.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request cancels the older run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Must match the `dioxus` version in Cargo.lock.
+  DIOXUS_CLI_VERSION: 0.7.10
+
+jobs:
+  core:
+    name: Format, check, test and lint (core library)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt --check
+        run: cargo fmt --check
+
+      - name: cargo check
+        run: cargo check
+
+      - name: cargo test
+        run: cargo test
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  wasm:
+    name: Check and lint the application (WebAssembly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check (wasm32)
+        run: cargo check -p schema-bridge-app --target wasm32-unknown-unknown
+
+      - name: cargo clippy (wasm32)
+        run: cargo clippy -p schema-bridge-app --target wasm32-unknown-unknown --all-targets -- -D warnings
+
+  web-build:
+    name: Release build of the web application (dx)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      # Installs a prebuilt Dioxus CLI instead of compiling it (minutes faster).
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install the Dioxus CLI
+        run: cargo binstall dioxus-cli@${{ env.DIOXUS_CLI_VERSION }} --no-confirm --locked
+
+      - name: dx build --release
+        run: dx build --package schema-bridge-app --release
