@@ -6,7 +6,7 @@ use dioxus::prelude::*;
 use schema_bridge_core::ExportKind;
 use schema_bridge_core::report::summary;
 use schema_bridge_core::systems::exportable;
-use schema_bridge_core::workspace::{Notice, Side, Workspace, grouped, kind_label, system_name};
+use schema_bridge_core::workspace::{Notice, Side, Workspace, grouped, system_name};
 
 use crate::browser::CopyButton;
 use crate::export::OpenWorkspaceButton;
@@ -293,7 +293,7 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
         .map(|(kind, label)| {
             (
                 *label,
-                if slot.files.has(*kind) {
+                if slot.input.csv_files().is_some_and(|f| f.has(*kind)) {
                     "chip on"
                 } else {
                     "chip"
@@ -303,7 +303,7 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
         .collect();
 
     let file = match &slot.notice {
-        Some(Notice::Loaded { file, kind }) => Some(format!("{file} · {}", kind_label(*kind))),
+        Some(Notice::Loaded { file, part }) => Some(format!("{file} · {part}")),
         _ => None,
     };
     let error = match &slot.notice {

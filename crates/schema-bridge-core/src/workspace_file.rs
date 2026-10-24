@@ -1,25 +1,33 @@
-//! Saving and reopening a workspace (FR-04): both structure exports as they
+//! Saving and reopening a comparison (FR-04): both databases' inputs as they
 //! were loaded, the database names, the word list and every choice made by
 //! hand. The file is JSON and stays on the user's computer; it holds
 //! structure only (no table contents) and never a password.
+//!
+//! Format version 2 records, for each database, the importer that read it
+//! and that importer's input. Version 1 files, which held the CSV export
+//! parts directly, still open.
 
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 
-use crate::import::{ExportFiles, build_schema};
+use crate::input::{CSV_EXPORT, Importer, SchemaInput, importer};
 use crate::matching::{Overrides, TableChoice};
 use crate::workspace::{Slot, Workspace};
 
 /// Written into every file, so other JSON files are recognised.
 const FORMAT: &str = "schema-bridge-workspace";
 /// Raised when the file layout changes in a way older versions cannot read.
-const VERSION: u32 = 1;
+/// 1: CSV export parts in each slot. 2: importer id and its input per slot.
+const VERSION: u32 = 2;
 
 #[derive(Serialize, Deserialize)]
 struct File {
     format: String,
     version: u32,
-    source: SlotFile,
-    target: SlotFile,
+    /// A slot: `{name, importer, input}` (version 2) or `{name, combined,
+    /// columns, …}` (version 1). Read by hand to support both.
+    source: Value,
+    target: Value,
     #[serde(default)]
     using_samples: bool,
     #[serde(default)]
@@ -28,21 +36,6 @@ struct File {
     table_choices: Vec<TableChoiceFile>,
     #[serde(default)]
     column_choices: Vec<ColumnChoiceFile>,
-}
-
-#[derive(Serialize, Deserialize, Default)]
-struct SlotFile {
-    name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    combined: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    columns: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    constraints: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    indexes: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    row_counts: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -63,12 +56,14 @@ struct ColumnChoiceFile {
     target_column: Option<String>,
 }
 
-/// Why a workspace file could not be opened.
+/// Why a saved comparison could not be opened.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpenError {
     NotJson,
     NotAWorkspace,
     NewerVersion(u32),
+    /// A database was read by an importer this version does not have.
+    UnknownImporter(String),
 }
 
 impl std::fmt::Display for OpenError {
@@ -81,46 +76,54 @@ impl std::fmt::Display for OpenError {
                 f,
                 "This workspace was saved by a newer version of Schema Bridge (format {v}). Update Schema Bridge to open it."
             ),
+            OpenError::UnknownImporter(id) => write!(
+                f,
+                "This workspace contains a database read with \"{id}\", an import format this version of Schema Bridge does not support. Update Schema Bridge, or load that database again from its export file."
+            ),
         }
     }
 }
 
 impl std::error::Error for OpenError {}
 
-fn slot_file(slot: &Slot) -> SlotFile {
-    let f = &slot.files;
-    SlotFile {
-        name: slot.name.clone(),
-        combined: f.combined.clone(),
-        columns: f.columns.clone(),
-        constraints: f.constraints.clone(),
-        indexes: f.indexes.clone(),
-        row_counts: f.row_counts.clone(),
+fn slot_file(slot: &Slot) -> Value {
+    match slot.input.importer() {
+        Some(i) => json!({ "name": slot.name, "importer": i.id(), "input": i.save(&slot.input) }),
+        None => json!({ "name": slot.name }),
     }
 }
 
-fn slot_from(file: SlotFile, fallback: &str) -> Slot {
-    let files = ExportFiles {
-        combined: file.combined,
-        columns: file.columns,
-        constraints: file.constraints,
-        indexes: file.indexes,
-        row_counts: file.row_counts,
+/// Reads a slot. Version 1 slots hold the CSV export parts directly.
+fn slot_from(value: &Value, version: u32, fallback: &str) -> Result<Slot, OpenError> {
+    let object = value.as_object().ok_or(OpenError::NotAWorkspace)?;
+    let name = match object.get("name") {
+        Some(Value::String(n)) if !n.trim().is_empty() => n.clone(),
+        None | Some(Value::String(_)) => fallback.to_string(),
+        Some(_) => return Err(OpenError::NotAWorkspace),
     };
-    let schema = (!files.is_empty()).then(|| build_schema(&files));
-    Slot {
-        name: if file.name.trim().is_empty() {
-            fallback.to_string()
-        } else {
-            file.name
-        },
-        files,
-        schema,
+    let input = if version <= 1 {
+        CSV_EXPORT.open(value).ok_or(OpenError::NotAWorkspace)?
+    } else {
+        match object.get("importer") {
+            None | Some(Value::Null) => SchemaInput::Empty,
+            Some(Value::String(id)) => {
+                let importer =
+                    importer(id).ok_or_else(|| OpenError::UnknownImporter(id.clone()))?;
+                let input = object.get("input").cloned().unwrap_or_else(|| json!({}));
+                importer.open(&input).ok_or(OpenError::NotAWorkspace)?
+            }
+            Some(_) => return Err(OpenError::NotAWorkspace),
+        }
+    };
+    Ok(Slot {
+        name,
+        schema: input.build(),
+        input,
         notice: None,
-    }
+    })
 }
 
-/// Writes a workspace as pretty-printed JSON.
+/// Writes a workspace as pretty-printed JSON (format version 2).
 pub fn save_workspace(ws: &Workspace) -> String {
     let file = File {
         format: FORMAT.into(),
@@ -160,11 +163,12 @@ pub fn save_workspace(ws: &Workspace) -> String {
     serde_json::to_string_pretty(&file).expect("a workspace always serialises") + "\n"
 }
 
-/// Reads a workspace saved with [`save_workspace`]. Choices of an unknown
-/// kind are skipped; choices for tables that no longer exist are kept and
-/// simply have no effect, as in the running application.
+/// Reads a workspace saved with [`save_workspace`], in format version 1 or
+/// 2. Choices of an unknown kind are skipped; choices for tables that no
+/// longer exist are kept and simply have no effect, as in the running
+/// application.
 pub fn open_workspace(text: &str) -> Result<Workspace, OpenError> {
-    let value: serde_json::Value = serde_json::from_str(text).map_err(|_| OpenError::NotJson)?;
+    let value: Value = serde_json::from_str(text).map_err(|_| OpenError::NotJson)?;
     if value.get("format").and_then(|f| f.as_str()) != Some(FORMAT) {
         return Err(OpenError::NotAWorkspace);
     }
@@ -173,6 +177,8 @@ pub fn open_workspace(text: &str) -> Result<Workspace, OpenError> {
         return Err(OpenError::NewerVersion(version));
     }
     let file: File = serde_json::from_value(value).map_err(|_| OpenError::NotAWorkspace)?;
+    let source = slot_from(&file.source, version, "Source")?;
+    let target = slot_from(&file.target, version, "Target")?;
 
     let mut overrides = Overrides::default();
     for c in file.table_choices {
@@ -190,8 +196,8 @@ pub fn open_workspace(text: &str) -> Result<Workspace, OpenError> {
             .insert((c.source_table, c.source_column), c.target_column);
     }
     Ok(Workspace {
-        source: slot_from(file.source, "Source"),
-        target: slot_from(file.target, "Target"),
+        source,
+        target,
         using_samples: file.using_samples,
         word_list: file.word_list,
         overrides,
@@ -219,7 +225,7 @@ mod tests {
 
         let opened = open_workspace(&save_workspace(&ws)).expect("opens");
         assert_eq!(opened.source.name, ws.source.name);
-        assert_eq!(opened.source.files, ws.source.files);
+        assert_eq!(opened.source.input, ws.source.input);
         assert_eq!(opened.source.schema, ws.source.schema);
         assert_eq!(opened.target.schema, ws.target.schema);
         assert_eq!(opened.word_list, ws.word_list);
@@ -241,7 +247,7 @@ mod tests {
         }
         let opened = open_workspace(&save_workspace(&ws)).unwrap();
         assert!(opened.source.schema.is_none());
-        assert_eq!(opened.target.files, ws.target.files);
+        assert_eq!(opened.target.input, ws.target.input);
         assert_eq!(opened.target.schema.as_ref().unwrap().tables.len(), 7);
     }
 
@@ -265,5 +271,106 @@ mod tests {
                 .to_string()
                 .contains("newer version")
         );
+    }
+
+    #[test]
+    fn version_2_records_the_importer_of_each_database() {
+        let mut ws = Workspace::new();
+        ws.load_samples();
+        ws.clear(Side::Target);
+        let text = save_workspace(&ws);
+        let v: Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(v["version"], 2);
+        assert_eq!(v["source"]["importer"], "csv-export");
+        assert!(
+            v["source"]["input"]["combined"]
+                .as_str()
+                .unwrap()
+                .starts_with("record_type,")
+        );
+        // An empty database records no importer at all.
+        assert!(v["target"].get("importer").is_none() && v["target"].get("input").is_none());
+
+        let opened = open_workspace(&text).unwrap();
+        assert_eq!(opened.source.input, ws.source.input);
+        assert_eq!(opened.source.schema, ws.source.schema);
+        assert_eq!(opened.target.input, SchemaInput::Empty);
+        assert!(opened.target.schema.is_none());
+    }
+
+    #[test]
+    fn a_version_1_file_still_opens_with_the_same_result() {
+        let mut ws = Workspace::new();
+        ws.load_samples();
+        ws.set_table_choice(
+            "main.booking",
+            Some(TableChoice::Target("public.session".into())),
+        );
+        ws.set_column_choice("main.machine", "room", Some(Some("location_id".into())));
+        let csv = |slot: &Slot| slot.input.csv_files().unwrap().combined.clone().unwrap();
+        // Exactly the layout format version 1 wrote.
+        let v1 = json!({
+            "format": "schema-bridge-workspace",
+            "version": 1,
+            "source": { "name": ws.source.name, "combined": csv(&ws.source) },
+            "target": { "name": ws.target.name, "combined": csv(&ws.target) },
+            "using_samples": true,
+            "word_list": ws.word_list,
+            "table_choices": [{ "source_table": "main.booking", "choice": "target", "target_table": "public.session" }],
+            "column_choices": [{ "source_table": "main.machine", "source_column": "room", "target_column": "location_id" }]
+        })
+        .to_string();
+        let opened = open_workspace(&v1).expect("version 1 opens");
+        assert_eq!(opened.source.input, ws.source.input);
+        assert_eq!(opened.target.input, ws.target.input);
+        assert_eq!(opened.overrides, ws.overrides);
+        assert_eq!(opened.analysis(), ws.analysis());
+        // Saving it again writes version 2.
+        assert!(save_workspace(&opened).contains("\"version\": 2"));
+
+        // Version 1 four-file slots and empty slots open too.
+        let four = json!({
+            "format": "schema-bridge-workspace", "version": 1,
+            "source": { "name": "" },
+            "target": { "name": "Catalogue", "columns": "table_schema,table_name,object_type,ordinal_position,column_name,data_type,is_nullable,column_default,table_comment,column_comment\npublic,asset,table,1,uuid,uuid,false,,,\n" }
+        });
+        let opened = open_workspace(&four.to_string()).unwrap();
+        assert_eq!(opened.source.name, "Source");
+        assert_eq!(opened.source.input, SchemaInput::Empty);
+        assert_eq!(opened.target.schema.as_ref().unwrap().tables.len(), 1);
+    }
+
+    #[test]
+    fn an_unknown_importer_is_refused_with_a_clear_message() {
+        let file = json!({
+            "format": "schema-bridge-workspace", "version": 2,
+            "source": { "name": "Telemetry", "importer": "influxdb-schema", "input": {} },
+            "target": { "name": "Target" }
+        });
+        let error = open_workspace(&file.to_string()).unwrap_err();
+        assert_eq!(error, OpenError::UnknownImporter("influxdb-schema".into()));
+        let message = error.to_string();
+        assert!(message.contains("\"influxdb-schema\""));
+        assert!(message.contains("does not support"));
+        assert!(message.contains("Update Schema Bridge"));
+    }
+
+    #[test]
+    fn malformed_slots_are_refused() {
+        let base = |source: Value| {
+            json!({ "format": "schema-bridge-workspace", "version": 2, "source": source, "target": { "name": "T" } }).to_string()
+        };
+        for bad in [
+            json!("not an object"),
+            json!({ "name": 3 }),
+            json!({ "name": "S", "importer": 7 }),
+            json!({ "name": "S", "importer": "csv-export", "input": { "combined": false } }),
+        ] {
+            assert_eq!(
+                open_workspace(&base(bad.clone())).unwrap_err(),
+                OpenError::NotAWorkspace,
+                "{bad}"
+            );
+        }
     }
 }

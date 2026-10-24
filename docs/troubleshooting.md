@@ -72,6 +72,11 @@ Reloading the page discards everything; use **Save comparison**.
 **"This workspace was saved by a newer version".** Update Schema Bridge
 (`git pull`) and open the file again.
 
+**"…an import format this version of Schema Bridge does not support".** The
+saved comparison contains a database read by an importer that your version
+does not have. Update Schema Bridge, or load that database again from its
+export file.
+
 **Copy does not work.** Some browsers block clipboard access outside
 `localhost` or without a user action. The button then says so; select the
 text and press ⌘C / Ctrl+C.

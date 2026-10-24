@@ -3,7 +3,21 @@
 All notable changes to Schema Bridge. Dates are when the change was made;
 releases are tagged by the repository owner.
 
-## [0.1.0] - Unreleased (first release candidate)
+## [Unreleased]
+
+### Architecture
+
+- One import boundary: a database slot holds a general schema input, and
+  every input format has an importer that turns it into the neutral model.
+  The CSV structure exports are the first importer and behave exactly as
+  before (milestone 7, decision 23).
+- Saved comparisons use format version 2, which records the importer of each
+  database. Files saved with 0.1.0 (version 1) still open; a file naming an
+  importer this version does not have is refused with a clear message.
+
+## [0.1.0] - 2026-10-24
+
+First release.
 
 ### Workflow
 

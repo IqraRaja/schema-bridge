@@ -26,6 +26,7 @@ pub mod checks;
 mod csv_reader;
 pub mod export;
 pub mod import;
+pub mod input;
 pub mod integration;
 pub mod matching;
 pub mod model;
@@ -39,6 +40,7 @@ pub mod workspace_file;
 
 pub use checks::{Finding, Severity, check_schema, count_by_severity};
 pub use import::{ExportFiles, ExportKind, ImportError, build_schema, detect_kind};
+pub use input::{Importer, SchemaInput};
 pub use matching::{
     ColumnStatus, Matching, Overrides, TableChoice, TableMapping, TableMatch, WordList,
     match_schemas,

@@ -69,8 +69,8 @@ step with the implementation.
 | --- | --- | --- |
 | 6a | Adapter boundary, first part: everything system-specific moved into one registry (`systems.rs`), neutral fallback for unknown systems, architecture and adapter guide, README split into recognised / importable / planned | Done |
 | 6b | Release pass: report stage and HTML/Markdown report, search and filters everywhere, review states with confidence and accept/remove/reset, type-fit explanations, large-schema performance, time-series extension points in the model, full documentation set with screenshots | Done |
-| 7 | Adapter boundary, second part: a workspace slot holds a general input instead of the CSV export files, and importers share one interface that produces the neutral model; the workspace file records which importer was used | Next |
-| 8 | Time-series model and the first time-series adapter: design how measurements, tags, fields, timestamps and retention policies sit next to tables (decision first, then code); an InfluxDB-style schema import; checks, matching and plan rules that understand them; a made-up time-series sample | Planned |
+| 7 | Adapter boundary, second part: a workspace slot holds a general input instead of the CSV export files, and importers share one interface that produces the neutral model; the workspace file records which importer was used | Done (decision 23): `SchemaInput`, `Importer`, saved comparison format version 2, version 1 still opens |
+| 8 | Time-series model and the first time-series adapter: design how measurements, tags, fields, timestamps and retention policies sit next to tables (decision first, then code); an InfluxDB-style schema import; checks, matching and plan rules that understand them; a made-up time-series sample | Next |
 | 9 | Relational adapters: a separate MariaDB entry where it differs from MySQL; run the MySQL, SQL Server and Oracle export queries on real servers and fix what they show | Planned |
 | 10 | Documentation set (below), with screenshots, completed and checked by following it on a clean machine for Windows, macOS and Linux | Planned; parts are written with each milestone |
 
@@ -86,9 +86,9 @@ and listing the links that form a cycle.
 [integration plan and draft SQL](integration-plan.md), [export](export.md),
 [security and privacy](security-privacy.md), [troubleshooting](troubleshooting.md),
 [architecture](architecture.md), [adding a database](adding-a-database.md),
-[CONTRIBUTING](../CONTRIBUTING.md), [CHANGELOG](../CHANGELOG.md). Still open:
-trying the Windows and Linux instructions on clean machines (milestone 10),
-and a license (the owner's decision).
+[CONTRIBUTING](../CONTRIBUTING.md), [CHANGELOG](../CHANGELOG.md), and the
+[MIT License](../LICENSE). Still open: trying the Windows and Linux
+instructions on clean machines (milestone 10).
 
 **Departures from the plan's approach**
 

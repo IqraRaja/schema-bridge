@@ -48,7 +48,8 @@ The workspace's default member is the core, so `cargo test` and
 | Module | Responsibility |
 | --- | --- |
 | `csv_reader` | Small CSV reader that keeps "quoted or not" (an unquoted `NULL` is no value) |
-| `import` | Recognises export files, builds the `Schema` |
+| `import` | Reads the CSV structure exports (`ExportFiles`), builds the `Schema` |
+| `input` | The import boundary: `SchemaInput` (what a slot was loaded from, one variant per format), the `Importer` interface, the importer registry, and `CsvExportImporter` |
 | `model` | `Schema`, `Table`, `Column`, keys, links, indexes, statistics; `TableKind`, `ColumnRole`, `RetentionPolicy` for time series |
 | `types` | Type recognition (`type_info`) and compatibility (`compatibility`, `Fit` with labels and meanings) |
 | `systems` | Registry of database systems: names, type overrides, validation statements, description fixes, foreign data wrappers, export queries |
@@ -60,7 +61,7 @@ The workspace's default member is the core, so `cargo test` and
 | `report` | `Summary`, `PlanSteps`, report document (`Block`) rendered to Markdown and HTML |
 | `export` | Findings CSV/table, mapping CSV |
 | `workspace` | `Workspace` (slots, word list, overrides), `Analysis`, `FindingFilter`, samples |
-| `workspace_file` | JSON save/open with format name and version |
+| `workspace_file` | JSON save/open with format name and version; version 2 records each slot's importer, version 1 files still open |
 
 ## The application
 
@@ -79,6 +80,33 @@ The workspace's default member is the core, so `cargo test` and
 
 Screens never compute the analysis themselves; they read the memos from
 `state.rs`. Lists of tables (200) and findings (100) render in pages.
+
+## The import boundary
+
+A workspace slot holds a `SchemaInput`, never format-specific files:
+
+```rust
+pub enum SchemaInput {
+    Empty,
+    CsvExport(ExportFiles), // the one-file export or the four-file parts
+}
+```
+
+Every input format has an `Importer` (`input.rs`):
+
+| Method | Does |
+| --- | --- |
+| `id()` | Stable id written into saved comparisons (`csv-export`) |
+| `name()` | Name shown to users |
+| `recognises(text)` | Whether a file belongs to this format |
+| `add_file(input, text)` | Adds a file (replacing an input of another format); on error nothing changes |
+| `build(input)` | The neutral `Schema` |
+| `save(input)` / `open(json)` | The input in a saved comparison |
+
+When a file is added, the first importer in `importers()` that recognises it
+takes it; a file no importer recognises is refused with the usual message.
+`CsvExportImporter` only delegates to `import.rs`, so CSV import behaves
+exactly as before (tested by comparing both paths on every sample export).
 
 ## What is database-neutral
 
@@ -104,10 +132,9 @@ other targets; the four-file export is a PostgreSQL format.
 - **A relational system with the one-file export**: one `systems` entry and
   an export query ([adding-a-database.md](adding-a-database.md)).
 - **New type names**: the vocabulary in `types.rs`, with parity fixture lines.
-- **A new input format** (DDL script, JSON snapshot, time-series schema): an
-  importer that produces `model::Schema`. *Today* a workspace slot stores
-  `ExportFiles` (the CSV formats), so a second format also needs the slot and
-  the workspace file to hold a general input (development plan, milestone 7).
+- **A new input format** (DDL script, JSON snapshot, time-series schema): a
+  `SchemaInput` variant and an `Importer` in `input.rs` (below). The slot,
+  the saved comparison and the application need no change.
 - **Time-series databases**: `TableKind::Measurement`, `ColumnRole`
   (`Timestamp`, `Tag`, `Field`) and `RetentionPolicy` exist in the model and
   default to relational. No importer fills them and no rule reads them yet

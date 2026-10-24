@@ -345,3 +345,31 @@ differences need two.
   in the user guide; the type examples in `type-compatibility.md` are tested
   in `types.rs`.
 
+### 23. One import boundary: schema inputs and importers
+
+Milestone 7. A workspace slot used to hold the CSV export files
+(`ExportFiles`) directly, so every other input format would have needed
+changes in the slot, the saved comparison and the application. Now:
+
+- A slot holds a `SchemaInput` (`input.rs`): `Empty`, or one variant per
+  input format. Today the only format is `CsvExport(ExportFiles)`.
+- Every format has an `Importer` with a stable id, which recognises its
+  files, adds them to an input, builds the neutral `Schema`, and saves and
+  opens its input. Adding a file asks the importers in order which one
+  recognises it.
+- `CsvExportImporter` (id `csv-export`) delegates to the unchanged
+  `import.rs`, so CSV import behaves exactly as before; a test compares the
+  old and new paths on every sample export, and all parity tests still use
+  `ExportFiles` and `build_schema` directly.
+- The saved comparison is **format version 2**: each slot records
+  `importer` and `input`. Version 1 files (0.1.0) still open, because their
+  slots held the CSV parts under the same names the CSV importer reads. An
+  unknown importer id is refused with a message that names it and suggests
+  updating or reloading the export.
+- The load notice now carries a short description from the importer
+  ("one-file export") instead of the CSV `ExportKind`, so it fits any format.
+
+No behaviour changed: the same files are accepted and refused with the same
+messages, adding, replacing and clearing work as before, and the analysis
+results are identical.
+

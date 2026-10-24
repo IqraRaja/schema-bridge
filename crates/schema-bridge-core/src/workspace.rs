@@ -3,7 +3,8 @@
 //! application's state logic is tested with the rest of the library.
 
 use crate::checks::{Finding, Severity, check_schema};
-use crate::import::{ExportFiles, ExportKind, build_schema};
+use crate::import::{ExportKind, ImportError};
+use crate::input::{SchemaInput, importer_for};
 use crate::integration::integration_findings;
 use crate::matching::{Matching, Overrides, TableChoice, TableMapping, WordList, match_schemas};
 use crate::model::Schema;
@@ -44,16 +45,24 @@ impl Side {
 /// Feedback shown in a slot after the last file action.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Notice {
-    Loaded { file: String, kind: ExportKind },
-    Rejected { file: String, reason: String },
+    /// `part` says what the file was, for example "one-file export".
+    Loaded {
+        file: String,
+        part: String,
+    },
+    Rejected {
+        file: String,
+        reason: String,
+    },
 }
 
-/// One database: its display name, the export files loaded for it, and the
-/// model built from them.
+/// One database: its display name, what it was loaded from, and the model
+/// built from it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Slot {
     pub name: String,
-    pub files: ExportFiles,
+    /// The loaded files, in their input format (see `input`).
+    pub input: SchemaInput,
     pub schema: Option<Schema>,
     pub notice: Option<Notice>,
 }
@@ -62,21 +71,26 @@ impl Slot {
     fn new(name: &str) -> Self {
         Slot {
             name: name.to_string(),
-            files: ExportFiles::default(),
+            input: SchemaInput::Empty,
             schema: None,
             notice: None,
         }
     }
 
-    /// Adds an export file and rebuilds the model. A file that is not an
-    /// export leaves the loaded files unchanged.
+    /// Adds a file and rebuilds the model. The importer that recognises the
+    /// file adds it; a file no importer recognises leaves everything loaded
+    /// unchanged.
     pub fn add_file(&mut self, file_name: &str, text: String) {
-        match self.files.add(text) {
-            Ok(kind) => {
-                self.schema = Some(build_schema(&self.files));
+        let added = match importer_for(&text) {
+            Some(importer) => importer.add_file(&mut self.input, text),
+            None => Err(ImportError::Unrecognised),
+        };
+        match added {
+            Ok(part) => {
+                self.schema = self.input.build();
                 self.notice = Some(Notice::Loaded {
                     file: file_name.to_string(),
-                    kind,
+                    part,
                 });
             }
             Err(error) => {
@@ -97,7 +111,7 @@ impl Slot {
     }
 
     pub fn clear(&mut self) {
-        self.files = ExportFiles::default();
+        self.input = SchemaInput::Empty;
         self.schema = None;
         self.notice = None;
     }
@@ -428,10 +442,7 @@ mod tests {
         assert!(!ws.using_samples);
         assert!(matches!(
             ws.target.notice,
-            Some(Notice::Loaded {
-                kind: ExportKind::Combined,
-                ..
-            })
+            Some(Notice::Loaded { ref part, .. }) if part == "one-file export"
         ));
     }
 
@@ -449,7 +460,7 @@ mod tests {
         let mut ws = Workspace::new();
         ws.load_samples();
         ws.clear(Side::Source);
-        assert!(ws.source.schema.is_none() && ws.source.files.is_empty());
+        assert!(ws.source.schema.is_none() && ws.source.input.is_empty());
         assert!(ws.target.schema.is_some());
     }
 
@@ -590,5 +601,82 @@ mod tests {
         assert_eq!(grouped(999), "999");
         assert_eq!(grouped(77388), "77,388");
         assert_eq!(grouped(-1234567), "-1,234,567");
+    }
+
+    fn demo(path: &str) -> String {
+        std::fs::read_to_string(format!("{}/../../demo/{path}", env!("CARGO_MANIFEST_DIR")))
+            .unwrap()
+    }
+
+    fn part(slot: &Slot) -> String {
+        match &slot.notice {
+            Some(Notice::Loaded { part, .. }) => part.clone(),
+            Some(Notice::Rejected { reason, .. }) => format!("rejected: {reason}"),
+            None => "none".into(),
+        }
+    }
+
+    #[test]
+    fn adding_replacing_and_clearing_inputs_behave_as_before() {
+        let mut slot = Slot::new("Target");
+        assert!(slot.input.is_empty() && slot.schema.is_none());
+
+        // The four-file export, one part at a time.
+        for (file, label) in [
+            ("columns.csv", "columns part"),
+            ("constraints.csv", "keys and links part"),
+            ("indexes.csv", "indexes part"),
+            ("rowcounts.csv", "row counts part"),
+        ] {
+            slot.add_file(file, demo(&format!("catalogue-postgresql-4files/{file}")));
+            assert_eq!(part(&slot), label);
+        }
+        let files = slot.input.csv_files().unwrap();
+        assert!(files.combined.is_none() && files.columns.is_some() && files.row_counts.is_some());
+        assert_eq!(slot.schema.as_ref().unwrap().tables.len(), 7);
+
+        // Replacing one part keeps the others.
+        slot.add_file(
+            "columns.csv",
+            demo("catalogue-postgresql-4files/columns.csv"),
+        );
+        assert!(slot.input.csv_files().unwrap().indexes.is_some());
+
+        // A one-file export replaces all parts.
+        slot.add_file("catalogue.csv", demo("catalogue-postgresql.csv"));
+        assert_eq!(part(&slot), "one-file export");
+        let files = slot.input.csv_files().unwrap();
+        assert!(files.combined.is_some() && files.columns.is_none() && files.indexes.is_none());
+
+        // A file no importer recognises is refused and changes nothing.
+        let before = slot.clone();
+        slot.add_file("prices.csv", "item,price\nbread,2\n".into());
+        assert_eq!(
+            part(&slot),
+            format!("rejected: {}", crate::ImportError::Unrecognised)
+        );
+        assert_eq!((&slot.input, &slot.schema), (&before.input, &before.schema));
+
+        // A part after a one-file export removes the one-file export.
+        slot.add_file(
+            "columns.csv",
+            demo("catalogue-postgresql-4files/columns.csv"),
+        );
+        assert!(slot.input.csv_files().unwrap().combined.is_none());
+
+        // Clearing empties the slot.
+        slot.clear();
+        assert_eq!(slot.input, SchemaInput::Empty);
+        assert!(slot.schema.is_none() && slot.notice.is_none());
+    }
+
+    #[test]
+    fn the_samples_load_through_the_csv_importer() {
+        let mut ws = Workspace::new();
+        ws.load_samples();
+        for slot in [&ws.source, &ws.target] {
+            assert_eq!(slot.input.importer().unwrap().id(), "csv-export");
+            assert_eq!(part(slot), "one-file export");
+        }
     }
 }

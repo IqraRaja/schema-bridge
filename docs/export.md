@@ -71,9 +71,13 @@ anything.
 ```json
 {
   "format": "schema-bridge-workspace",
-  "version": 1,
-  "source": { "name": "Workshop", "combined": "record_type,table_schema,…" },
-  "target": { "name": "Catalogue", "combined": "…" },
+  "version": 2,
+  "source": {
+    "name": "Workshop",
+    "importer": "csv-export",
+    "input": { "combined": "record_type,table_schema,…" }
+  },
+  "target": { "name": "Catalogue", "importer": "csv-export", "input": { "combined": "…" } },
   "using_samples": false,
   "word_list": "machine = asset\n…",
   "table_choices": [
@@ -85,13 +89,19 @@ anything.
 }
 ```
 
-- It holds both exports as loaded (one-file, or the four parts), the names,
-  the word list and every choice (`choice` is `target`, `none` or `stays`; a
+- For each database it records the **importer** that read it (today always
+  `csv-export`) and that importer's input: the exports as loaded (one-file,
+  or the four parts `combined`, `columns`, `constraints`, `indexes`,
+  `row_counts`). An empty database has no importer. Then the names, the word
+  list and every choice (`choice` is `target`, `none` or `stays`; a
   missing `target_column` means "not copied").
 - **Open workspace…** restores everything; the analysis is recomputed and is
   the same as before (a test checks this).
 - Files that are not workspaces are refused with a reason; a file from a
-  newer format version asks you to update Schema Bridge.
+  newer format version asks you to update Schema Bridge, and so does a file
+  with a database read by an importer this version does not know.
+- **Version 1** files (Schema Bridge 0.1.0, with the export parts directly in
+  each database) still open; saving them again writes version 2.
 - It contains structure only: no table contents, no passwords, no
   connection details. It is plain text you can inspect.
 - Nothing is saved in the browser automatically: reloading the page starts

@@ -121,7 +121,7 @@ More: [docs/security-privacy.md](docs/security-privacy.md).
 ## Testing
 
 ```sh
-cargo test                     # 107 tests of the core library
+cargo test                     # 117 tests of the core library
 cargo clippy --all-targets --all-features -- -D warnings
 cargo clippy -p schema-bridge-app --target wasm32-unknown-unknown -- -D warnings
 ```

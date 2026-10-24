@@ -97,10 +97,15 @@ its policy and `Schema::retention_policies` lists them
 (`crates/schema-bridge-core/src/model.rs`). A test checks that such a schema
 passes through the analysis.
 
+**Also already there:** the import boundary (`crates/schema-bridge-core/src/input.rs`).
+A new format adds a `SchemaInput` variant and an `Importer` with a new,
+never-changing id; the slot, the saved comparison (which records the
+importer id) and the application need no change.
+
 **Still needed**, in this order:
 
-1. A general input in the workspace slot and the workspace file, so a format
-   other than the CSV export can be stored (development plan, milestone 7).
+1. ~~A general input in the workspace slot and the workspace file~~ (done:
+   development plan, milestone 7).
 2. An importer for the system's schema description (for InfluxDB, for
    example the output of `SHOW MEASUREMENTS`, `SHOW TAG KEYS`,
    `SHOW FIELD KEYS` and `SHOW RETENTION POLICIES`) that fills the model,
