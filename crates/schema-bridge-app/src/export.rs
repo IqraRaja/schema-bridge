@@ -10,6 +10,7 @@ use schema_bridge_core::workspace::{Side, Workspace};
 use schema_bridge_core::workspace_file::{open_workspace, save_workspace};
 
 use crate::browser::{CopyButton, download_text, file_stem};
+use crate::feedback::{Action, confirm_or_apply};
 use crate::icons::Icon;
 use crate::state::derived;
 
@@ -17,7 +18,6 @@ use crate::state::derived;
 /// workspace. Says why when the file is not a workspace.
 #[component]
 pub fn OpenWorkspaceButton(workspace: Signal<Workspace>, id: String, class: String) -> Element {
-    let mut workspace = workspace;
     let mut error = use_signal(|| None::<String>);
     let message = error();
     rsx! {
@@ -36,8 +36,8 @@ pub fn OpenWorkspaceButton(workspace: Signal<Workspace>, id: String, class: Stri
                     match file.read_string().await {
                         Ok(text) => match open_workspace(&text) {
                             Ok(opened) => {
-                                *workspace.write() = opened;
                                 error.set(None);
+                                confirm_or_apply(workspace, Action::Open(Box::new(opened)));
                             }
                             Err(e) => error.set(Some(format!("{name}: {e}"))),
                         },

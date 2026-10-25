@@ -16,8 +16,10 @@ comparisons like internal documents.
 - The development server (`dx serve`) only serves the application files to
   your own browser.
 - The app makes no external requests: fonts, icons and styles are bundled.
-- Nothing is stored in the browser between sessions; closing or reloading
-  the page discards everything not saved to a file.
+- No schema, word list or choice is stored in the browser between
+  sessions; closing or reloading the page discards everything not saved to a
+  file. The only thing the browser remembers is the colour theme you chose
+  (in its local storage, under `schema-bridge.theme`).
 
 ## Credentials and databases
 

@@ -12,6 +12,7 @@ use schema_bridge_core::workspace::{Notice, Side, Workspace, grouped, system_nam
 
 use crate::browser::CopyButton;
 use crate::export::OpenWorkspaceButton;
+use crate::feedback::{Action, confirm_or_apply};
 use crate::icons::Icon;
 use crate::state::derived;
 use crate::widgets::{SummaryCard, summary_cards};
@@ -39,7 +40,6 @@ pub fn LoadStage(
     open_matching: EventHandler<()>,
     open_report: EventHandler<()>,
 ) -> Element {
-    let mut workspace = workspace;
     let d = derived();
     let ws = workspace.read();
     let loaded = (ws.source.schema.is_some(), ws.target.schema.is_some());
@@ -80,13 +80,13 @@ pub fn LoadStage(
                     div { class: "hero-actions",
                         button {
                             class: "btn primary lg",
-                            onclick: move |_| workspace.write().load_samples(),
+                            onclick: move |_| confirm_or_apply(workspace, Action::LoadSamples),
                             Icon { name: "arrow", size: 18 }
                             "Try with sample schemas"
                         }
                         button {
                             class: "btn secondary lg",
-                            onclick: move |_| workspace.write().load_timeseries_samples(),
+                            onclick: move |_| confirm_or_apply(workspace, Action::LoadTimeseriesSamples),
                             "Try the time-series sample (InfluxDB → PostgreSQL)"
                         }
                         OpenWorkspaceButton { workspace, id: "open-workspace-hero", class: "btn secondary lg" }
@@ -122,20 +122,20 @@ pub fn LoadStage(
                     button {
                         class: "btn ghost",
                         title: "Make the source the target and the target the source",
-                        onclick: move |_| workspace.write().swap(),
+                        onclick: move |_| confirm_or_apply(workspace, Action::Swap),
                         "⇄ Swap"
                     }
                     OpenWorkspaceButton { workspace, id: "open-workspace-load", class: "btn ghost" }
                     if !using_samples {
                         button {
                             class: "btn ghost",
-                            onclick: move |_| workspace.write().load_samples(),
+                            onclick: move |_| confirm_or_apply(workspace, Action::LoadSamples),
                             "Load sample schemas"
                         }
                         button {
                             class: "btn ghost",
                             title: "InfluxDB measurements into a PostgreSQL database",
-                            onclick: move |_| workspace.write().load_timeseries_samples(),
+                            onclick: move |_| confirm_or_apply(workspace, Action::LoadTimeseriesSamples),
                             "Time-series sample"
                         }
                     }
@@ -490,7 +490,7 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
                 if loaded {
                     button {
                         class: "btn ghost",
-                        onclick: move |_| workspace.write().clear(side),
+                        onclick: move |_| confirm_or_apply(workspace, Action::Clear(side)),
                         "Clear"
                     }
                 }

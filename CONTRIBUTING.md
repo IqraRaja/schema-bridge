@@ -26,6 +26,7 @@ cargo check
 cargo test
 cargo clippy --all-targets --all-features -- -D warnings
 cargo clippy -p schema-bridge-app --target wasm32-unknown-unknown -- -D warnings
+cargo test -p schema-bridge-app            # the application's own unit tests (not yet in CI)
 dx build --package schema-bridge-app --release
 ```
 

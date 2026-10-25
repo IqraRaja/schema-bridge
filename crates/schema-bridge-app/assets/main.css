@@ -738,6 +738,37 @@ pre.sql:focus-visible { box-shadow: inset var(--focus); }
 .how-to-query-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); font-size: var(--t-sm); }
 .how-to pre.sql { max-height: 360px; }
 
+/* ---------- readiness, stage navigation, dialogs, notices ---------- */
+.progress-fill.all-clear { background: var(--success); }
+.readiness { margin: 0; font-size: var(--t-xs); font-weight: 650; color: var(--ink-3); line-height: 1.4; }
+.readiness.open { color: var(--warning); }
+.readiness.good { color: var(--success); }
+/* Headings receive focus after a stage change; the page scroll shows where. */
+.content h2[tabindex="-1"]:focus, .content h2[tabindex="-1"]:focus-visible { outline: none; box-shadow: none; }
+
+.stage-nav { display: flex; justify-content: space-between; align-items: stretch; gap: var(--s3); margin-top: var(--s4); padding-top: var(--s5); border-top: 1px solid var(--line); }
+.stage-nav .btn { height: auto; min-height: 52px; padding: 8px var(--s4); flex-direction: column; align-items: flex-start; gap: 1px; max-width: 48%; }
+.stage-nav .stage-next { align-items: flex-end; text-align: right; margin-left: auto; }
+.stage-nav-dir { font-size: var(--t-xs); font-weight: 600; color: var(--ink-3); }
+.stage-nav-name { font-size: var(--t-md); font-weight: 700; }
+.stage-nav .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* The same deep red in both themes keeps white text readable. */
+.btn.danger { background: #b91c1c; color: #fff; }
+.btn.danger:hover { background: #991b1b; }
+
+.dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--s4); background: rgba(15, 23, 42, 0.45); animation: enter var(--fast) var(--ease) both; }
+.dialog { width: min(460px, 100%); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-3); padding: var(--s6); display: flex; flex-direction: column; gap: var(--s3); }
+.dialog h2 { margin: 0; font-size: var(--t-lg); }
+.dialog p { margin: 0; color: var(--ink-2); line-height: 1.5; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--s2); margin-top: var(--s2); flex-wrap: wrap; }
+
+.notices { position: fixed; right: var(--s5); bottom: var(--s5); z-index: 60; display: flex; flex-direction: column; gap: var(--s2); align-items: flex-end; pointer-events: none; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: var(--s2); max-width: min(420px, calc(100vw - 32px)); padding: 10px 10px 10px var(--s3); background: var(--surface); color: var(--ink); border: 1px solid var(--success-line); border-radius: var(--r); box-shadow: var(--shadow-3); font-size: var(--t-sm); overflow-wrap: anywhere; animation: enter var(--base) var(--ease) both; }
+.toast-mark { flex: none; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 999px; background: var(--success-soft); color: var(--success); font-weight: 800; font-size: 12px; }
+.toast-close { flex: none; margin-left: var(--s1); width: 26px; height: 26px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink-3); font-size: 18px; line-height: 1; cursor: pointer; }
+.toast-close:hover { background: var(--surface-3); color: var(--ink); }
+
 /* ---------- responsive ---------- */
 @media (max-width: 1200px) {
   .local-note { display: none; }
@@ -769,6 +800,8 @@ pre.sql:focus-visible { box-shadow: inset var(--focus); }
   .step-label { white-space: nowrap; font-size: var(--t-sm); }
   .content { padding: var(--s5) var(--s4) var(--s8); gap: var(--s4); }
   .page-head h2 { font-size: 24px; }
+  .notices { left: var(--s4); right: var(--s4); bottom: var(--s4); align-items: stretch; }
+  .toast { max-width: none; }
   .hero { padding: var(--s6) var(--s5); }
   .hero-text h2 { font-size: 26px; }
   .hero-actions .btn { flex: 1 1 220px; }
@@ -798,6 +831,8 @@ pre.sql:focus-visible { box-shadow: inset var(--focus); }
   .plan-num { width: 30px; height: 30px; font-size: 13px; }
   .plan-items li { grid-template-columns: 1fr; gap: 4px; }
   .analysis { grid-template-columns: 1fr; }
+  .stage-nav .btn { max-width: none; flex: 1 1 0; min-width: 0; }
+  .stage-nav-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

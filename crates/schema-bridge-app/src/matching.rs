@@ -14,6 +14,7 @@ use schema_bridge_core::workspace::{Workspace, grouped};
 use schema_bridge_core::{Fit, Severity, table_name};
 
 use crate::browser::{CopyButton, download_text};
+use crate::feedback::{Action, confirm_or_apply};
 use crate::icons::Icon;
 use crate::problems::more_label;
 use crate::state::derived;
@@ -68,7 +69,6 @@ pub fn MatchingStage(
     state: Signal<MatchState>,
     go_to_load: EventHandler<()>,
 ) -> Element {
-    let mut workspace = workspace;
     let mut state = state;
     let ws = workspace.read();
     let rules = ws.words().rule_count();
@@ -91,7 +91,7 @@ pub fn MatchingStage(
                     class: "btn ghost",
                     disabled: !has_choices,
                     title: "Forget every table and column choice made by hand",
-                    onclick: move |_| workspace.write().reset_choices(),
+                    onclick: move |_| confirm_or_apply(workspace, Action::ResetChoices),
                     Icon { name: "undo", size: 15 }
                     "Reset all my choices"
                 }

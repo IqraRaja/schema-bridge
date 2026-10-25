@@ -5,6 +5,26 @@ releases are tagged by the repository owner.
 
 ## [Unreleased]
 
+### Interface (UI-1)
+
+- **Readiness** in the navigation: the report's count of items to resolve
+  before a test load, and a check per stage that is clear only when nothing
+  is open there (previously a stage counted as complete once opened). Each
+  stage says what is still open.
+- **Previous / Next** at the bottom of every stage; changing stage starts at
+  the top of the new stage and moves the keyboard focus to its heading.
+- **Confirmations** before loading a sample or opening a saved comparison
+  over your own work, and before Clear, Swap and Reset all my choices when
+  choices made by hand would be lost.
+- **Notices** after every saved file and copy.
+- The colour theme is remembered in the browser (the only thing stored
+  there).
+
+### Fixed
+
+- The message for a file that is not an export now names the help section
+  correctly ("How to make an export file").
+
 ## [0.1.0] - 2026-10-24
 
 First release.

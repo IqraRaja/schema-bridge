@@ -1,8 +1,14 @@
-//! The two browser actions the app needs: copying text to the clipboard and
-//! saving text as a file. Both stay on the user's computer; nothing is sent
-//! anywhere.
+//! The browser actions the app needs: copying text to the clipboard, saving
+//! text as a file, showing a stage from its top, and remembering the colour
+//! theme. Everything stays on the user's computer; nothing is sent anywhere.
+//! The theme is the only thing kept in the browser's storage.
 
 use dioxus::prelude::*;
+
+use crate::feedback::notify;
+
+/// Where the chosen colour theme is kept in the browser's local storage.
+const THEME_KEY: &str = "schema-bridge.theme";
 
 /// Copies text to the clipboard. Returns false when the browser refused
 /// (for example without permission), so the caller can say so.
@@ -35,7 +41,68 @@ pub fn download_text(file_name: &str, media_type: &str, text: String) {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         "#,
     );
-    let _ = eval.send((file_name.to_string(), media_type.to_string(), text));
+    if eval
+        .send((file_name.to_string(), media_type.to_string(), text))
+        .is_ok()
+    {
+        notify(format!("Saved {file_name}"));
+    }
+}
+
+/// Waits the given number of milliseconds.
+pub async fn wait_ms(ms: u32) {
+    let mut eval = document::eval(
+        r#"
+        const ms = await dioxus.recv();
+        setTimeout(() => dioxus.send(true), ms);
+        "#,
+    );
+    if eval.send(ms).is_ok() {
+        let _ = eval.recv::<bool>().await;
+    }
+}
+
+/// After a stage change: scrolls to the top and moves the keyboard focus to
+/// the stage's heading, so screen readers announce the new stage. Waits two
+/// frames so the new stage is on screen first.
+pub fn reveal_stage() {
+    document::eval(
+        r#"
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            window.scrollTo(0, 0);
+            const heading = document.querySelector("main.content h2");
+            if (heading) {
+                heading.setAttribute("tabindex", "-1");
+                heading.focus({ preventScroll: true });
+            }
+        }));
+        "#,
+    );
+}
+
+/// The colour theme chosen in an earlier session, if the browser kept it.
+pub async fn saved_theme() -> Option<String> {
+    let mut eval = document::eval(
+        r#"
+        const key = await dioxus.recv();
+        let value = null;
+        try { value = window.localStorage.getItem(key); } catch (e) {}
+        dioxus.send(value);
+        "#,
+    );
+    eval.send(THEME_KEY).ok()?;
+    eval.recv::<Option<String>>().await.ok().flatten()
+}
+
+/// Remembers the colour theme; does nothing where storage is blocked.
+pub fn save_theme(value: &str) {
+    let eval = document::eval(
+        r#"
+        const [key, value] = await dioxus.recv();
+        try { window.localStorage.setItem(key, value); } catch (e) {}
+        "#,
+    );
+    let _ = eval.send((THEME_KEY, value.to_string()));
 }
 
 /// A file name made from a database name: `Workshop (sample)` → `workshop-sample`.
@@ -75,6 +142,9 @@ pub fn CopyButton(text: String, label: String) -> Element {
                 let text = text.clone();
                 async move {
                     let ok = copy_text(text).await;
+                    if ok {
+                        notify("Copied to the clipboard");
+                    }
                     state.set(Some(ok));
                 }
             },

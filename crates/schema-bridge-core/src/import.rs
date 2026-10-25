@@ -44,7 +44,7 @@ impl fmt::Display for ImportError {
         match self {
             ImportError::Unrecognised => write!(
                 f,
-                "This file is not a Schema Bridge export. Use the queries under \"How to export\"."
+                "This file is not a Schema Bridge export. Use the queries under \"How to make an export file\"."
             ),
             ImportError::Invalid { line, reason } => write!(f, "Line {line}: {reason}"),
         }

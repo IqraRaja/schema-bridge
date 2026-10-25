@@ -246,6 +246,13 @@ list and every table and column choice. **Open workspace…** (on *Load* or
 contains structure only. Nothing is kept in the browser between sessions
 otherwise: reloading the page starts empty.
 
+Actions that would throw away work ask first: loading a sample or opening a
+saved comparison over your own databases, **Clear**, **⇄ Swap** and **Reset
+all my choices** when you have made choices by hand. The question says what
+would be removed. Nothing is asked when nothing would be lost, for example
+when the untouched samples are replaced. Every saved file and every copy
+shows a short confirmation at the bottom right.
+
 ## Working with large schemas
 
 - Analysis of 400 × 400 tables takes about a second in a development build
@@ -259,16 +266,35 @@ otherwise: reloading the page starts empty.
 
 ## Progress in the navigation
 
-Each stage in the navigation shows its state: the **current** stage is blue,
-**completed** stages have a green check (Load once both databases are loaded;
-other stages once you have opened them with their data available), stages
-**waiting for data** have a dashed ring and say what they need ("Needs both
-schemas"). Counts show the number of problems and integration issues
-(coloured by the most serious one) and how many tables are matched. The bar
-at the top shows how many of the eight stages are complete.
+**Readiness** at the top of the navigation says how close the comparison is
+to a first test load, with the same count as the report: *Ready for a test
+load*, or *N items to resolve before a test load* (blocking problems inside a
+database and open decisions). The bar shows how many stage checks are clear.
+
+A stage gets a green check only when nothing is open there, not when you
+have opened it:
+
+| Stage | Check is clear when |
+| --- | --- |
+| Load schemas | both databases are loaded |
+| Problems | no blocking problem inside a database |
+| Matching | no match left to review and no table without a place |
+| Integration issues | no blocking or high integration issue |
+| Plan | no open decision |
+| Draft SQL | no `TODO` left in the draft (no check for a time-series target) |
+
+Report and Export have no check. Under each stage name the navigation says
+what is still open ("1 blocking problem to fix first", "9 TODOs to resolve"),
+or what the stage needs ("Needs both schemas"). Counts show the number of
+problems, integration issues and TODOs (coloured by the most serious one) and
+how many tables are matched.
+
+At the bottom of every stage, **Previous** and **Next** lead to the
+neighbouring stages; *Next* says what it needs when it is not available yet.
+Changing stage always starts at the top of the new stage.
 
 ## Themes and layout
 
 The top bar switches between the **System** colour theme, **Light** and
-**Dark**. On narrow windows the navigation becomes a strip at the top and the
+**Dark**; the choice is remembered the next time you open Schema Bridge. On narrow windows the navigation becomes a strip at the top and the
 panels stack.
