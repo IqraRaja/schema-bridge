@@ -16,7 +16,7 @@ mod widgets;
 
 use dioxus::prelude::*;
 
-use browser::{download_text, file_stem, reveal_stage, save_theme, saved_theme};
+use browser::{download_text, file_stem, guard_file_drops, reveal_stage, save_theme, saved_theme};
 use export::ExportStage;
 use feedback::{ConfirmDialog, Notices};
 use icons::Icon;
@@ -229,6 +229,8 @@ fn App() -> Element {
     let mut theme = use_signal(|| Theme::System);
     // The report's counts, which the navigation's readiness is built from.
     let report = use_memo(move || summary(&workspace.read(), derived.analysis.read().as_ref()));
+    // A file dropped beside a database panel must not replace the app.
+    use_hook(guard_file_drops);
     // The theme chosen in an earlier session.
     use_future(move || async move {
         if let Some(t) = saved_theme()

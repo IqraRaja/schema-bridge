@@ -12,7 +12,7 @@ PostgreSQL catalogue of assets, people and sessions (the *target*). They
 contain deliberate problems so every feature has something to show; the
 [demo README](../demo/README.md) lists them.
 
-1. **Load.** On the first screen press **Try with sample schemas**. Both
+1. **Load.** On the first screen choose the **Relational sample** card. Both
    database panels fill in: SQLite with 5 tables on the left (teal), PostgreSQL
    with 7 tables on the right (violet). The bridge between them now reads
    *4 of 5 tables matched · 11 integration issues*, three summary cards show
@@ -55,8 +55,8 @@ contain deliberate problems so every feature has something to show; the
 
 ### The time-series sample (InfluxDB → PostgreSQL)
 
-**Try the time-series sample (InfluxDB → PostgreSQL)** on the first screen
-(or **Time-series sample** on the Load stage) loads **Plant**, a made-up
+The **Time-series sample** card on the first screen (or **Time-series
+sample** on the Load stage) loads **Plant**, a made-up
 InfluxDB bucket, and **Readings**, a PostgreSQL database for its sensor data.
 
 1. **Load.** The Plant panel shows a *Time series* badge, 3 measurements,
@@ -89,14 +89,27 @@ query from [`export-queries/`](../export-queries). "How to make an export
 file" on this screen shows the query and the steps for PostgreSQL, MySQL /
 MariaDB, SQL Server, Oracle and SQLite. Details: [import formats](import-formats.md).
 
+- The **first screen** offers three ways in: **Add your exports** (jumps to
+  the two panels; *How to make an export file* opens the export steps), the
+  **Relational sample** and **Time-series sample** cards, and **Open
+  workspace…** to continue a saved comparison.
 - Each database has a **panel**: its role (source or target), a state
-  (*No export yet*, *Reading file…*, *Loaded*), the name, the database engine
+  (*No export yet*, *Reading…*, *Loaded*), the name, the database engine
   and file, and the number of tables, columns, links and estimated rows.
-- Click the empty area or **Add export file** to read the CSV; **Replace
-  export** and **Clear** appear once one is loaded. A file that is not an
-  export is refused with a reason, and what was loaded before is kept.
+  Hover over a figure for what it counts.
+- **Drag the CSV file onto a panel**, or click the empty area or **Add export
+  file** to choose it. Dropping onto a loaded panel replaces its export, like
+  **Replace export**. Several files can be dropped or chosen at once (for
+  example the four parts of the older PostgreSQL export). A file dropped
+  beside the panels is ignored.
+- While a file is read, the panel says *Reading <file>…* and its buttons
+  wait; other files are not accepted until it has finished.
+- A file that is not an export is refused with an **error card** in the
+  panel: the file, the reason, which exports are accepted, and **Show me how
+  to export**, which opens the export steps. What was loaded before is kept.
+  **×** dismisses the card.
 - The chips show which parts arrived (columns, keys and links, indexes, row
-  counts). The older four-file PostgreSQL export is added one file at a time.
+  counts).
 - Click the name to rename the database; the name is used everywhere
   (findings, report, SQL comments).
 - The **bridge** between the panels shows the matching result once both are

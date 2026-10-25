@@ -2,6 +2,7 @@
 //! panels joined by the bridge, the analysis at a glance and the next step.
 //! Values are prepared in plain Rust first, so the markup only places them.
 
+use dioxus::html::{FileData, HasFileData};
 use dioxus::prelude::*;
 use schema_bridge_core::ExportKind;
 use schema_bridge_core::influx::retention_summary;
@@ -10,7 +11,7 @@ use schema_bridge_core::report::summary;
 use schema_bridge_core::systems::exportable;
 use schema_bridge_core::workspace::{Notice, Side, Workspace, grouped, system_name};
 
-use crate::browser::CopyButton;
+use crate::browser::{CopyButton, reveal_how_to, reveal_panels};
 use crate::export::OpenWorkspaceButton;
 use crate::feedback::{Action, confirm_or_apply};
 use crate::icons::Icon;
@@ -23,6 +24,23 @@ const PARTS: [(ExportKind, &str); 4] = [
     (ExportKind::Constraints, "Keys & links"),
     (ExportKind::Indexes, "Indexes"),
     (ExportKind::RowCounts, "Row counts"),
+];
+
+/// The two made-up sample pairs offered on the first screen: what loads
+/// them, their name, the pair of databases and what they show.
+const SAMPLES: [(Action, &str, &str, &str); 2] = [
+    (
+        Action::LoadSamples,
+        "Relational sample",
+        "SQLite workshop → PostgreSQL catalogue",
+        "Problems, matching, a load plan and draft SQL",
+    ),
+    (
+        Action::LoadTimeseriesSamples,
+        "Time-series sample",
+        "InfluxDB plant → PostgreSQL readings",
+        "Measurements, tags, fields and retention",
+    ),
 ];
 
 /// The four things Schema Bridge does, shown on the first screen.
@@ -77,22 +95,46 @@ pub fn LoadStage(
                     p { class: "lead",
                         "Schema Bridge reads a structure export of each database, finds problems in each, matches their tables and columns, and plans how to bring one into the other. Everything stays on this computer."
                     }
-                    div { class: "hero-actions",
-                        button {
-                            class: "btn primary lg",
-                            onclick: move |_| confirm_or_apply(workspace, Action::LoadSamples),
-                            Icon { name: "arrow", size: 18 }
-                            "Try with sample schemas"
+                    div { class: "start-own",
+                        h3 { "Use your own databases" }
+                        p {
+                            "Export each database's structure with one read-only query, then add the two files to the Source and Target panels below."
                         }
-                        button {
-                            class: "btn secondary lg",
-                            onclick: move |_| confirm_or_apply(workspace, Action::LoadTimeseriesSamples),
-                            "Try the time-series sample (InfluxDB → PostgreSQL)"
+                        div { class: "start-own-actions",
+                            button {
+                                class: "btn primary lg",
+                                onclick: move |_| reveal_panels(),
+                                Icon { name: "upload", size: 17 }
+                                "Add your exports"
+                            }
+                            button {
+                                class: "btn ghost",
+                                onclick: move |_| reveal_how_to(),
+                                "How to make an export file"
+                            }
                         }
-                        OpenWorkspaceButton { workspace, id: "open-workspace-hero", class: "btn secondary lg" }
                     }
-                    p { class: "hero-hint",
-                        "Have your own databases? Add their exports in the panels below."
+                    div { class: "start-samples",
+                        h3 { "Or explore a sample" }
+                        div { class: "sample-cards",
+                            for (action , title , pair , shows) in SAMPLES {
+                                button {
+                                    key: "{title}",
+                                    class: "sample-card",
+                                    onclick: move |_| confirm_or_apply(workspace, action.clone()),
+                                    span { class: "sample-title",
+                                        {title}
+                                        Icon { name: "arrow", size: 15 }
+                                    }
+                                    span { class: "sample-pair", {pair} }
+                                    span { class: "sample-shows", {shows} }
+                                }
+                            }
+                        }
+                    }
+                    p { class: "start-resume",
+                        "Continuing earlier work?"
+                        OpenWorkspaceButton { workspace, id: "open-workspace-hero", class: "btn ghost small" }
                     }
                 }
                 ol { class: "pipeline", aria_label: "What Schema Bridge does",
@@ -243,7 +285,7 @@ fn HowToExport() -> Element {
         "Reviewed, but not yet run on a real server. Please report problems."
     };
     rsx! {
-        details { class: "card how-to",
+        details { class: "card how-to", id: "how-to-export",
             summary {
                 Icon { name: "info", size: 16 }
                 "How to make an export file"
@@ -285,11 +327,68 @@ struct TableRow {
     columns: String,
 }
 
+/// What the panel's error card says is accepted, from the systems that have
+/// an export query.
+fn accepted_formats<'a>(systems: impl IntoIterator<Item = &'a str>) -> String {
+    let mut names: Vec<&str> = systems.into_iter().collect();
+    let last = names.pop().unwrap_or_default();
+    let list = if names.is_empty() {
+        last.to_string()
+    } else {
+        format!("{} or {last}", names.join(", "))
+    };
+    format!(
+        "Accepted: the CSV file made with the export query for {list}, or the older four-file PostgreSQL export."
+    )
+}
+
+/// A short explanation of each panel figure, shown on hover.
+fn stat_hint(label: &str) -> &'static str {
+    match label {
+        "Tables" => "Tables in the export (views are not counted)",
+        "Columns" => "Columns in all tables together",
+        "Links" => "Foreign keys: columns that point to a row in another table",
+        "Rows (est.)" => "The database's own row estimates added up; they may be out of date",
+        "Measurements" => "Measurements in the exported bucket",
+        "Tags" => "Tag keys in all measurements together",
+        "Fields" => "Field keys in all measurements together",
+        "Series" => "Tag combinations in the export, not a number of points",
+        _ => "",
+    }
+}
+
+/// Reads files into one database, one after the other. `reading` names the
+/// file being read, so the panel can say so and refuse other files.
+async fn load_files(
+    mut workspace: Signal<Workspace>,
+    side: Side,
+    files: Vec<FileData>,
+    mut reading: Signal<Option<String>>,
+) {
+    for file in files {
+        let file_name = file.name();
+        reading.set(Some(file_name.clone()));
+        match file.read_string().await {
+            Ok(text) => workspace.write().add_file(side, &file_name, text),
+            Err(_) => workspace
+                .write()
+                .slot_mut(side)
+                .reject_file(&file_name, "The file could not be read."),
+        }
+    }
+    reading.set(None);
+}
+
 #[component]
 fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
     let mut workspace = workspace;
-    let mut reading = use_signal(|| false);
+    // The file being read, if any.
+    let reading = use_signal(|| None::<String>);
+    // Drag events entered minus left: above zero while files are over the
+    // panel (moving over child elements fires both events).
+    let mut drag = use_signal(|| 0i32);
     let slot = workspace.read().slot(side).clone();
+    let busy = reading().is_some();
 
     let role = side.label();
     let role_hint = match side {
@@ -301,9 +400,11 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
     let input_id = format!("file-{}", side.id());
     let loaded = slot.schema.is_some();
     let panel_class = format!(
-        "dbpanel dbpanel-{} {}",
+        "dbpanel dbpanel-{} {}{}{}",
         side.id(),
-        if loaded { "is-loaded" } else { "is-empty" }
+        if loaded { "is-loaded" } else { "is-empty" },
+        if drag() > 0 { " is-dragging" } else { "" },
+        if busy { " is-reading" } else { "" }
     );
 
     let chips: Vec<(&str, &str)> = PARTS
@@ -325,9 +426,10 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
         _ => None,
     };
     let error = match &slot.notice {
-        Some(Notice::Rejected { file, reason }) => Some(format!("{file}: {reason}")),
+        Some(Notice::Rejected { file, reason }) => Some((file.clone(), reason.clone())),
         _ => None,
     };
+    let accepted = accepted_formats(exportable().map(|(s, _)| s.name));
     let time_series = slot.schema.as_ref().is_some_and(|x| x.is_time_series());
     let retention = slot.schema.as_ref().and_then(retention_summary);
     let noun = slot.schema.as_ref().map_or("tables", |x| x.object_noun());
@@ -371,13 +473,14 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
             .collect();
         (system_name(&schema.dbms).to_string(), stats, tables)
     });
-    let (state_class, state_text) = if reading() {
-        ("state reading", "Reading file…")
+    let (state_class, state_text) = if busy {
+        ("state reading", "Reading…")
     } else if loaded {
         ("state loaded", "Loaded")
     } else {
         ("state empty", "No export yet")
     };
+    let role_lower = role.to_lowercase();
     let add_label = if loaded {
         "Replace export"
     } else {
@@ -385,7 +488,33 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
     };
 
     rsx! {
-        article { class: panel_class, aria_label: "{role} database",
+        article {
+            class: panel_class,
+            aria_label: "{role} database",
+            aria_busy: if busy { "true" } else { "false" },
+            ondragenter: move |e| {
+                e.prevent_default();
+                drag += 1;
+            },
+            ondragover: move |e| e.prevent_default(),
+            ondragleave: move |_| {
+                let n = drag();
+                drag.set((n - 1).max(0));
+            },
+            ondrop: move |e| async move {
+                e.prevent_default();
+                drag.set(0);
+                let files = e.files();
+                if reading().is_none() && !files.is_empty() {
+                    load_files(workspace, side, files, reading).await;
+                }
+            },
+            if drag() > 0 && !busy {
+                div { class: "drop-overlay", aria_hidden: "true",
+                    Icon { name: "upload", size: 22 }
+                    b { if loaded { "Drop to replace the {role_lower} export" } else { "Drop to add the {role_lower} export" } }
+                }
+            }
             header { class: "dbpanel-head",
                 div { class: "dbpanel-role",
                     span { class: "role-mark", aria_hidden: "true", Icon { name: "load", size: 16 } }
@@ -421,7 +550,7 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
             if let Some((_ , stats , tables)) = summary {
                 dl { class: "dbstats",
                     for (label , value) in stats {
-                        div { key: "{label}",
+                        div { key: "{label}", title: stat_hint(label),
                             dt { {label} }
                             dd { {value} }
                         }
@@ -455,14 +584,46 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
                 label { class: "dropzone", r#for: input_id.clone(),
                     span { class: "dropzone-icon", Icon { name: "upload", size: 22 } }
                     b { "Add the structure export" }
-                    span { "A CSV file made with the export query for your system. Click to choose a file." }
+                    span { "Drop the CSV file made with the export query here, or click to choose it." }
                 }
             }
-            if let Some(error) = error {
-                p { class: "notice error", role: "alert", {error} }
+            if let Some(file) = reading() {
+                p { class: "reading-line", role: "status",
+                    span { class: "state-dot", aria_hidden: "true" }
+                    "Reading {file}…"
+                }
+            }
+            if let Some((file, reason)) = error {
+                div { class: "load-error", role: "alert",
+                    div { class: "load-error-head",
+                        b { "{file} could not be loaded" }
+                        button {
+                            class: "load-error-close",
+                            aria_label: "Dismiss this message",
+                            title: "Dismiss",
+                            onclick: move |_| workspace.write().slot_mut(side).notice = None,
+                            "×"
+                        }
+                    }
+                    p { {reason} }
+                    p { class: "load-error-help", {accepted} }
+                    if loaded {
+                        p { class: "load-error-help", "What was loaded before is unchanged." }
+                    }
+                    div {
+                        button {
+                            class: "btn secondary small",
+                            onclick: move |_| reveal_how_to(),
+                            "Show me how to export"
+                        }
+                    }
+                }
             }
             div { class: "dbpanel-actions",
-                label { class: if loaded { "btn secondary" } else { "btn primary" }, r#for: input_id.clone(),
+                label {
+                    class: if loaded { "btn secondary" } else { "btn primary" },
+                    r#for: input_id.clone(),
+                    aria_disabled: if busy { "true" } else { "false" },
                     Icon { name: "upload", size: 15 }
                     {add_label}
                 }
@@ -472,24 +633,17 @@ fn DatabasePanel(workspace: Signal<Workspace>, side: Side) -> Element {
                     r#type: "file",
                     accept: ".csv,text/csv",
                     multiple: true,
+                    disabled: busy,
                     onchange: move |evt| async move {
-                        reading.set(true);
-                        for file in evt.files() {
-                            let file_name = file.name();
-                            match file.read_string().await {
-                                Ok(text) => workspace.write().add_file(side, &file_name, text),
-                                Err(_) => workspace
-                                    .write()
-                                    .slot_mut(side)
-                                    .reject_file(&file_name, "The file could not be read."),
-                            }
+                        if reading().is_none() {
+                            load_files(workspace, side, evt.files(), reading).await;
                         }
-                        reading.set(false);
                     },
                 }
                 if loaded {
                     button {
                         class: "btn ghost",
+                        disabled: busy,
                         onclick: move |_| confirm_or_apply(workspace, Action::Clear(side)),
                         "Clear"
                     }
@@ -553,5 +707,53 @@ fn SideBySide(workspace: Signal<Workspace>) -> Element {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_error_card_lists_every_system_with_an_export_query() {
+        let text = accepted_formats(exportable().map(|(s, _)| s.name));
+        for (system, _) in exportable() {
+            assert!(
+                text.contains(system.name),
+                "{} missing: {text}",
+                system.name
+            );
+        }
+        assert!(text.contains("four-file PostgreSQL export"));
+        assert_eq!(
+            accepted_formats(["A", "B", "C"]),
+            "Accepted: the CSV file made with the export query for A, B or C, or the older four-file PostgreSQL export."
+        );
+        assert!(accepted_formats(["A"]).contains("query for A, or"));
+    }
+
+    #[test]
+    fn every_panel_figure_is_explained() {
+        for label in [
+            "Tables",
+            "Columns",
+            "Links",
+            "Rows (est.)",
+            "Measurements",
+            "Tags",
+            "Fields",
+            "Series",
+        ] {
+            assert!(!stat_hint(label).is_empty(), "{label}");
+        }
+    }
+
+    #[test]
+    fn both_samples_are_offered() {
+        let actions: Vec<&Action> = SAMPLES.iter().map(|(a, ..)| a).collect();
+        assert_eq!(
+            actions,
+            [&Action::LoadSamples, &Action::LoadTimeseriesSamples]
+        );
     }
 }

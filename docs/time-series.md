@@ -150,8 +150,8 @@ identity is tags + time, which `MAP-TS-SERIES-KEY` covers.
 
 ## The sample
 
-*Try the time-series sample (InfluxDB → PostgreSQL)* on the first screen
-loads two made-up databases:
+The *Time-series sample* card on the first screen loads two made-up
+databases:
 
 - **Plant** ([`demo/plant-influxdb.csv`](../demo/plant-influxdb.csv)): bucket
   `plant`, kept 30 days, with three measurements:

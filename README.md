@@ -57,7 +57,7 @@ cd schema-bridge
 dx serve --package schema-bridge-app
 ```
 
-Open **http://localhost:8080**, press **Try with sample schemas**, and follow
+Open **http://localhost:8080**, choose the **Relational sample** card, and follow
 the stages from top to bottom. The [user guide](docs/user-guide.md) walks
 through the sample comparison step by step.
 

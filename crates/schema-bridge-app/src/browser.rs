@@ -1,6 +1,6 @@
 //! The browser actions the app needs: copying text to the clipboard, saving
-//! text as a file, showing a stage from its top, and remembering the colour
-//! theme. Everything stays on the user's computer; nothing is sent anywhere.
+//! text as a file, showing a stage or section, guarding against stray file
+//! drops, and remembering the colour theme. Everything stays on the user's computer; nothing is sent anywhere.
 //! The theme is the only thing kept in the browser's storage.
 
 use dioxus::prelude::*;
@@ -76,6 +76,51 @@ pub fn reveal_stage() {
                 heading.focus({ preventScroll: true });
             }
         }));
+        "#,
+    );
+}
+
+/// Scroll behaviour that respects the user's reduced-motion setting.
+const SCROLL: &str =
+    r#"(matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth")"#;
+
+/// Opens "How to make an export file" and scrolls to it.
+pub fn reveal_how_to() {
+    document::eval(&format!(
+        r#"
+        const how = document.getElementById("how-to-export");
+        if (how) {{
+            how.open = true;
+            how.scrollIntoView({{ behavior: {SCROLL}, block: "start" }});
+            how.querySelector("summary")?.focus({{ preventScroll: true }});
+        }}
+        "#
+    ));
+}
+
+/// Scrolls to the two database panels and puts the keyboard focus on the
+/// source panel's file chooser.
+pub fn reveal_panels() {
+    document::eval(&format!(
+        r#"
+        document.querySelector(".bench")?.scrollIntoView({{ behavior: {SCROLL}, block: "start" }});
+        document.getElementById("file-source")?.focus({{ preventScroll: true }});
+        "#
+    ));
+}
+
+/// Keeps a file dropped outside the database panels from replacing the
+/// application with the file (the browser's default), which would lose the
+/// comparison. Only drags that carry files are affected.
+pub fn guard_file_drops() {
+    document::eval(
+        r#"
+        if (!window.__schemaBridgeDropGuard) {
+            window.__schemaBridgeDropGuard = true;
+            const files = (e) => e.dataTransfer && Array.from(e.dataTransfer.types).includes("Files");
+            window.addEventListener("dragover", (e) => { if (files(e)) e.preventDefault(); });
+            window.addEventListener("drop", (e) => { if (files(e)) e.preventDefault(); });
+        }
         "#,
     );
 }

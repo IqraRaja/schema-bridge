@@ -20,6 +20,22 @@ releases are tagged by the repository owner.
 - The colour theme is remembered in the browser (the only thing stored
   there).
 
+### Interface (UI-2)
+
+- **Drag and drop**: export files can be dropped onto the Source and Target
+  panels (one or several at a time); dropping onto a loaded panel replaces
+  its export. A file dropped beside the panels no longer replaces the
+  application in the browser.
+- **Start screen**: a clear "Use your own databases" path (Add your exports,
+  How to make an export file), two equal sample cards (relational and time
+  series) and Open workspace… to continue earlier work.
+- **Error card** for a file that is not an export: the file, the reason, the
+  accepted exports, Show me how to export, and a dismiss button.
+- **Reading state**: the panel names the file being read and its actions
+  wait until it is done.
+- Clearer badges (the Sample data badge no longer looks like a link), and a
+  short explanation on hover for each panel figure.
+
 ### Fixed
 
 - The message for a file that is not an export now names the help section
