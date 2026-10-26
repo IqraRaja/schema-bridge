@@ -1,0 +1,151 @@
+# Release packages: builds the web application for a release and attaches it
+# to that GitHub release, with its checksum:
+#
+#   schema-bridge-web-<tag>.zip   the built web application (index.html and
+#                                 assets/), to be served from the root of any
+#                                 static web server
+#   SHA256SUMS.txt                SHA-256 of the archive
+#
+# Runs when a release is published, or by hand with the tag of an existing
+# release (to rebuild its assets; existing assets are replaced). The build is
+# attached only after it has been started in a headless browser and the
+# application has drawn its first screen. Nothing is deployed.
+
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of an existing release to build the assets for (for example v0.2.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One run per tag at a time; a running release build is never cancelled.
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  # Must match the `dioxus` version in Cargo.lock (and the same variable in ci.yml).
+  DIOXUS_CLI_VERSION: 0.7.10
+
+jobs:
+  build:
+    name: Build and check the web application
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install the Dioxus CLI
+        run: cargo binstall dioxus-cli@${{ env.DIOXUS_CLI_VERSION }} --no-confirm --locked
+
+      - name: dx build --release
+        run: dx build --package schema-bridge-app --release
+
+      # Serves the build as a user would and opens it in headless Chrome
+      # (installed on GitHub's Ubuntu runners). The page only contains
+      # `class="app"` once the WebAssembly has loaded and drawn the app. The
+      # check stops if its own server is not the one answering.
+      - name: Check that the application starts
+        run: |
+          set -euo pipefail
+          port=8765
+          python3 -m http.server "$port" --bind 127.0.0.1 \
+            --directory target/dx/schema-bridge-app/release/web/public > /dev/null 2>&1 &
+          server=$!
+          trap 'kill "$server" 2> /dev/null || true' EXIT
+          ready=false
+          for _ in $(seq 1 30); do
+            if ! kill -0 "$server" 2> /dev/null; then
+              echo "::error::The local web server for the check did not start."
+              exit 1
+            fi
+            if curl --silent --fail --output /dev/null "http://127.0.0.1:$port/"; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != true ] || ! kill -0 "$server" 2> /dev/null; then
+            echo "::error::The local web server for the check did not answer."
+            exit 1
+          fi
+          # A new, empty browser profile, so nothing comes from a cache.
+          profile="$(mktemp -d)"
+          google-chrome --headless=new --no-sandbox --disable-gpu --no-first-run \
+            --user-data-dir="$profile" --virtual-time-budget=15000 \
+            --dump-dom "http://127.0.0.1:$port/" > "$RUNNER_TEMP/page.html"
+          if ! grep -q 'class="app"' "$RUNNER_TEMP/page.html"; then
+            echo "::error::The built application did not start in the browser."
+            exit 1
+          fi
+          echo "The application started and drew its first screen."
+
+      - name: Archive the build and write its checksum
+        run: |
+          set -euo pipefail
+          name="schema-bridge-web-${TAG}"
+          mkdir -p dist
+          cp -R target/dx/schema-bridge-app/release/web/public "dist/${name}"
+          (cd dist && zip -r -q "${name}.zip" "${name}" && rm -r "${name}")
+          (cd dist && sha256sum -- "${name}.zip" > SHA256SUMS.txt)
+          cat dist/SHA256SUMS.txt
+
+      - name: Keep the release files for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Attach to the release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The only job that writes: it adds the files to the GitHub release.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: dist
+
+      - name: Check the checksum
+        run: cd dist && sha256sum --check SHA256SUMS.txt
+
+      - name: Attach the archive and checksum to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null; then
+            echo "::error::There is no GitHub release for the tag $TAG. Create the release first."
+            exit 1
+          fi
+          gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"

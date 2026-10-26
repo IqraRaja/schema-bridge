@@ -12,7 +12,7 @@ use crate::workspace::{Analysis, Side, Workspace};
 pub fn origin_label(ws: &Workspace, side: Option<Side>) -> String {
     match side {
         Some(s) => ws.slot(s).name.clone(),
-        None => "Fitting them together".into(),
+        None => "Integration".into(),
     }
 }
 
@@ -59,7 +59,7 @@ const FINDING_HEADER: [&str; 8] = [
     "Area",
     "Rule",
     "Object",
-    "Problem",
+    "Finding",
     "What it means",
     "What to do",
 ];
@@ -268,9 +268,9 @@ mod tests {
         let text = findings_csv(&ws, &all);
         assert_eq!(text.lines().count(), 1 + all.len());
         assert!(text.starts_with(
-            "Severity,Database,Area,Rule,Object,Problem,What it means,What to do\r\n"
+            "Severity,Database,Area,Rule,Object,Finding,What it means,What to do\r\n"
         ));
-        assert!(text.contains("Fitting them together"));
+        assert!(text.contains(",Integration,"));
 
         let table = findings_table(&ws, &all);
         assert_eq!(table.lines().count(), 1 + all.len());

@@ -1,10 +1,25 @@
-# Problem detection rules
+# Schema checks and integration rules
 
-Schema Bridge checks each database on its own (20 rules), and then how the
+Schema Bridge checks each schema on its own (20 rules), and then how the
 two fit together (9 rules). Every finding has a rule id, a severity, the
 object it is about, a plain-language explanation and what to do. All rules
 work on the structure alone; none reads data. The code is in
 `crates/schema-bridge-core/src/checks.rs` and `integration.rs`.
+
+## Terminology
+
+Schema Bridge reports **findings** from structure exports only: schema-level
+risks and incompatibilities that can affect bringing the source into the
+target. It does not detect operational problems, errors at run time,
+outages, performance under load, or the quality of the data in the rows.
+
+| Term | Meaning |
+| --- | --- |
+| **Finding** | Anything Schema Bridge detects from the structure exports |
+| **Schema finding** | A finding about the structure of one schema, source or target (stage *Schema checks*) |
+| **Integration issue** | A finding about fitting the source into the target, from the matching (stage *Integration issues*); its origin is shown as *Integration* |
+| **Integration risk** | A blocking or high integration issue (report section) |
+| **Severity** | Blocking, High, Medium, Low or Info (below) |
 
 ## Severities
 
@@ -16,7 +31,7 @@ work on the structure alone; none reads data. The code is in
 | **Low** | Quality, speed or naming. |
 | **Info** | Context; nothing is wrong. |
 
-## Rules inside one database
+## Schema checks (each schema on its own)
 
 | Rule id | Severity | Area | Finds |
 | --- | --- | --- | --- |
@@ -41,8 +56,14 @@ work on the structure alone; none reads data. The code is in
 | `DOC-COVERAGE` | Low or Info | Descriptions | Share of columns with a description (Low below 30 %); not checked for SQLite, which has no descriptions |
 | `CONTENT-EMPTY` | Info | Content | Tables with no rows, or whose statistics were never collected |
 
+The Low and Info findings in the areas Speed, Naming, Descriptions and
+Content (`PERF-*`, `NAME-*`, `KEY-MIXED-GENERATORS`, `DOC-COVERAGE`,
+`CONTENT-EMPTY`) are notes that can make the integration slower or harder,
+for example a link check without an index or names that need quoting. They
+are not migration blockers on their own.
+
 Rules that need a part of the export that is missing (for example indexes)
-are skipped rather than reporting false problems.
+are skipped rather than reporting false findings.
 
 ### Time-series rules
 
@@ -81,9 +102,9 @@ you change a match.
 
 ## Filtering
 
-On the *Problems* and *Integration issues* screens, findings can be searched
-(title, object, area, rule, explanation, fix) and filtered by database,
-severity and rule id. See the [user guide](user-guide.md#2-problems).
+On the *Schema checks* and *Integration issues* screens, findings can be
+searched (title, object, area, rule, explanation, fix) and filtered by
+database, severity and rule id. See the [user guide](user-guide.md#2-schema-checks).
 
 ## Origin and testing
 

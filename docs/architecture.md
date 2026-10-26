@@ -27,9 +27,9 @@ The workspace's default member is the core, so `cargo test` and
  model.rs                           neutral Schema → Table → Column, keys, links,
         │                           indexes; time-series extension points
         ▼
- checks.rs     problems inside one database         (uses types.rs, systems.rs)
+ checks.rs     schema checks on one database        (uses types.rs, systems.rs)
  matching.rs   word list, table/column matching, evidence, review states, filters
- integration.rs  problems in fitting the two together
+ integration.rs  integration issues between the two
  plan.rs       load order
  sql.rs        draft SQL (text only)                (uses systems.rs)
  report.rs     summary, plan steps, report (Markdown/HTML)
@@ -72,7 +72,7 @@ The workspace's default member is the core, so `cargo test` and
 | `state.rs` | Shared derived values: `Analysis` and findings as memos, computed once per workspace change and provided as context |
 | `views.rs` | Load stage: first-run explanation, the two database panels joined by the bridge, analysis summary, next step, side-by-side figures, how to make an export |
 | `widgets.rs` | Summary cards (headline, segmented bar, counts) shared by the Load and Report stages |
-| `problems.rs` | Problems stage; shared finding cards and filters |
+| `problems.rs` | Schema checks stage; shared finding cards and filters |
 | `matching.rs` | Matching stage: table list, detail, column grid, word list |
 | `integration.rs`, `plan.rs`, `report.rs`, `export.rs` | The other stages |
 | `browser.rs` | Clipboard and downloads (local only) |

@@ -9,17 +9,17 @@ schemas, then explains each stage in detail. Start the application first
 The samples describe two made-up databases: **Workshop**, a SQLite database
 of machines, operators and runs (the *source*), and **Catalogue**, a
 PostgreSQL catalogue of assets, people and sessions (the *target*). They
-contain deliberate problems so every feature has something to show; the
+contain deliberate flaws so every feature has something to show; the
 [demo README](../demo/README.md) lists them.
 
 1. **Load.** On the first screen choose the **Relational sample** card. Both
    database panels fill in: SQLite with 5 tables on the left (teal), PostgreSQL
    with 7 tables on the right (violet). The bridge between them now reads
    *4 of 5 tables matched · 11 integration issues*, three summary cards show
-   tables, columns and problems at a glance, and a blue band suggests the next
+   tables, columns and findings at a glance, and a blue band suggests the next
    step. The top bar shows *Workshop (sample) → Catalogue (sample)*, and step 1
    in the navigation gets a check mark.
-2. **Problems.** Open *Problems* (16 findings). The red tile says there is
+2. **Schema checks.** Open *Schema checks* (16 findings). The red tile says there is
    1 Blocking finding: `asset.parent_asset_id` links to `location` instead of
    `asset`. Type `serial` in the search box: one finding remains
    (`machine.serial_no` identifies a machine but has no unique rule). Clear
@@ -47,7 +47,7 @@ contain deliberate problems so every feature has something to show; the
    loads the tables in that order. Highlighted lines are `TODO`s: decisions
    from the plan.
 7. **Report.** The whole comparison on one page: *4 items to resolve before a
-   test load*, tables, columns and problems in numbers, risks and the
+   test load*, tables, columns and findings in numbers, risks and the
    unresolved list. **Save report (HTML)** produces a page you can send or
    print.
 8. **Export.** Save the findings or the mapping as CSV, or **Save comparison**
@@ -62,7 +62,7 @@ InfluxDB bucket, and **Readings**, a PostgreSQL database for its sensor data.
 1. **Load.** The Plant panel shows a *Time series* badge, 3 measurements,
    6 tags, 9 fields and 622 series, and *Retention plant: 30 days*. The
    bridge reads *2 of 3 measurements matched*.
-2. **Problems.** Three findings in Plant, area *Time series*: `pump.speed_rpm`
+2. **Schema checks.** Three findings in Plant, area *Time series*: `pump.speed_rpm`
    has two types, `boiler.firmware_version` has an unknown type, and
    `energy_meter.total_kwh` is unsigned.
 3. **Matching.** `boiler → readings` comes from the word list, `pump →
@@ -123,10 +123,14 @@ MariaDB, SQL Server, Oracle and SQLite. Details: [import formats](import-formats
   and rows, and the retention of each bucket. It is one file; loading another
   replaces it. See [time series](time-series.md).
 
-### 2. Problems
+### 2. Schema checks
 
-Problems inside each database, found from the structure alone (20 rules,
-listed in [rules.md](rules.md)). Every card shows the severity, the database,
+Findings about the structure of each schema that can affect the integration,
+read from the structure export alone (20 rules, listed in
+[rules.md](rules.md)). They are not errors in the running database: Schema
+Bridge never connects to it. Low and Info findings about speed, naming,
+descriptions and content are notes that can make the integration slower or
+harder, not blockers. Every card shows the severity, the database,
 the area, the rule id, the object (table, column or link), what it means and
 what to do.
 
@@ -207,15 +211,16 @@ word list.
 
 ### 4. Integration issues
 
-Problems in fitting the two together, from the matching (9 rules, see
-[rules.md](rules.md#integration-rules)). They follow your choices: change a
-match and the list updates. Search and filters work as on *Problems*.
+Findings about fitting the source into the target, from the matching (9
+rules, see [rules.md](rules.md#integration-rules)). They follow your choices:
+change a match and the list updates. Search and filters work as on *Schema
+checks*.
 
 ### 5. Plan
 
 The integration as six steps ([integration plan](integration-plan.md)):
 
-1. Fix the problems inside the target (its blocking and high findings).
+1. Fix the schema findings in the target (its blocking and high findings).
 2. Check the data in the source (its blocking and high findings).
 3. Make the decisions (blocking and high integration issues, tables with no place).
 4. Load the tables in this order (outlined tables already exist and must hold the rows others link to; tables on a cycle are marked with a two-pass suggestion).
@@ -237,7 +242,7 @@ The comparison for someone who did not run it:
 - a verdict: *Ready for a test load* or *N items to resolve before a test load*;
 - **Tables**: matched, uncertain, no place yet, stay in source, changed by you;
 - **Columns**: same or safe, need conversion, may lose data, incompatible, not mapped;
-- **Problems**: blocking, high, medium, low/info;
+- **Findings**: blocking, high, medium, low/info;
 - **Integration risks** and **Unresolved items** (fix first, decide, review, draft SQL).
 
 **Save report (HTML)** writes a self-contained page that opens in any
@@ -281,8 +286,8 @@ shows a short confirmation at the bottom right.
 
 **Readiness** at the top of the navigation says how close the comparison is
 to a first test load, with the same count as the report: *Ready for a test
-load*, or *N items to resolve before a test load* (blocking problems inside a
-database and open decisions). The bar shows how many stage checks are clear.
+load*, or *N items to resolve before a test load* (blocking schema findings
+and open decisions). The bar shows how many stage checks are clear.
 
 A stage gets a green check only when nothing is open there, not when you
 have opened it:
@@ -290,16 +295,16 @@ have opened it:
 | Stage | Check is clear when |
 | --- | --- |
 | Load schemas | both databases are loaded |
-| Problems | no blocking problem inside a database |
+| Schema checks | no blocking schema finding |
 | Matching | no match left to review and no table without a place |
 | Integration issues | no blocking or high integration issue |
 | Plan | no open decision |
 | Draft SQL | no `TODO` left in the draft (no check for a time-series target) |
 
 Report and Export have no check. Under each stage name the navigation says
-what is still open ("1 blocking problem to fix first", "9 TODOs to resolve"),
+what is still open ("1 blocking schema finding to fix first", "9 TODOs to resolve"),
 or what the stage needs ("Needs both schemas"). Counts show the number of
-problems, integration issues and TODOs (coloured by the most serious one) and
+schema findings, integration issues and TODOs (coloured by the most serious one) and
 how many tables are matched.
 
 At the bottom of every stage, **Previous** and **Next** lead to the

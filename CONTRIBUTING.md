@@ -26,12 +26,35 @@ cargo check
 cargo test
 cargo clippy --all-targets --all-features -- -D warnings
 cargo clippy -p schema-bridge-app --target wasm32-unknown-unknown -- -D warnings
-cargo test -p schema-bridge-app            # the application's own unit tests (not yet in CI)
+cargo test -p schema-bridge-app            # the application's own unit tests
 dx build --package schema-bridge-app --release
 ```
 
 Then try the change in the running application (`dx serve`), in both themes
 and on a narrow window if it touches the UI.
+
+## Branches, CI and releases
+
+- **`develop`** is the integration branch. Work on a feature branch and open
+  a pull request into `develop`.
+- **`develop` → `main`** is the release path: when `develop` is ready, a pull
+  request merges it into `main`. `main` holds only released, stable states.
+- **CI must pass before merging.** `.github/workflows/ci.yml` runs on every
+  push to `develop` or `main` and on every pull request into either:
+  formatting, `cargo check` and Clippy on the core library; the core tests on
+  Linux, macOS and Windows; the application's tests, WebAssembly check and
+  Clippy; and the release build with `dx`. Builds of `develop` and `main` are
+  kept as a downloadable workflow artifact for 14 days (not deployed).
+- **Releases are tagged from `main`** (`v0.2.0`, …) by publishing a GitHub
+  release for the tag. `.github/workflows/release.yml` then builds the web
+  application, checks in a headless browser that it starts, and attaches
+  `schema-bridge-web-<tag>.zip` and `SHA256SUMS.txt` to the release. To
+  rebuild the assets of an existing release, run the workflow by hand with
+  its tag. The archive is a static site: serve the folder from the root of a
+  web server (for example `python3 -m http.server`); opening `index.html`
+  directly from disk does not work.
+- Text files are checked out with LF line endings on every system
+  (`.gitattributes`), so the tests pass on Windows too.
 
 ## Tests
 

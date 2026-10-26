@@ -1,12 +1,14 @@
 # Continuous integration: the checks from CONTRIBUTING.md ("Before every
 # change is shared"), run on every push to main or develop and on every pull
-# request into main.
+# request into either of them.
 #
 # The workspace's default member is the core library, so `cargo check`,
 # `cargo test` and `cargo clippy` at the root cover crates/schema-bridge-core.
-# The application (crates/schema-bridge-app) is a Dioxus web app and is
-# checked for the wasm32-unknown-unknown target, then built with the Dioxus
-# CLI exactly as `dx build --package schema-bridge-app --release`.
+# The core tests run on Linux, macOS and Windows. The application
+# (crates/schema-bridge-app) is a Dioxus web app: its own tests run natively,
+# it is checked for the wasm32-unknown-unknown target, then built with the
+# Dioxus CLI exactly as `dx build --package schema-bridge-app --release`.
+# Pushes keep that build as a workflow artifact; nothing is deployed.
 
 name: CI
 
@@ -14,7 +16,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -31,7 +33,7 @@ env:
 
 jobs:
   core:
-    name: Format, check, test and lint (core library)
+    name: Format, check and lint (core library)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -51,14 +53,32 @@ jobs:
       - name: cargo check
         run: cargo check
 
-      - name: cargo test
-        run: cargo test
-
       - name: cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-  wasm:
-    name: Check and lint the application (WebAssembly)
+  core-tests:
+    name: Test the core library (${{ matrix.os }})
+    strategy:
+      # Every system reports its own result, even when another one fails.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo test
+        run: cargo test
+
+  app:
+    name: Test, check and lint the application
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -72,6 +92,10 @@ jobs:
 
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2
+
+      # The application's own unit tests; they run natively, not in a browser.
+      - name: cargo test (application)
+        run: cargo test -p schema-bridge-app
 
       - name: cargo check (wasm32)
         run: cargo check -p schema-bridge-app --target wasm32-unknown-unknown
@@ -103,3 +127,14 @@ jobs:
 
       - name: dx build --release
         run: dx build --package schema-bridge-app --release
+
+      # Kept for two weeks so a build of develop or main can be downloaded and
+      # tried; pull requests are built but not kept. Not deployed anywhere.
+      - name: Keep the web build
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-bridge-web-${{ github.ref_name }}-${{ github.sha }}
+          path: target/dx/schema-bridge-app/release/web/public/
+          if-no-files-found: error
+          retention-days: 14

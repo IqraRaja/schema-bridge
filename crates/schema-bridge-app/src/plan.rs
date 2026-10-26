@@ -181,7 +181,7 @@ pub fn PlanStage(
         div { class: "plan",
             Step {
                 number: 1,
-                title: format!("Fix the problems inside {t}"),
+                title: format!("Fix the schema findings in {t}"),
                 hint: "The receiving database must be correct first, otherwise good data is rejected or stored wrongly.",
                 ItemList { items: fix_target, empty: "Nothing serious found." }
             }

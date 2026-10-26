@@ -74,7 +74,7 @@ pub fn IntegrationStage(
         .iter()
         .enumerate()
         .filter(|(_, f)| current.matches_finding(f))
-        .map(|(i, f)| card(i, f, "Fitting them together".into(), "finding-db both"))
+        .map(|(i, f)| card(i, f, "Integration".into(), "finding-db both"))
         .collect();
     let total = matching.len();
     let limit = shown();

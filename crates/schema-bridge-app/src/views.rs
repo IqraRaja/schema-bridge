@@ -33,7 +33,7 @@ const SAMPLES: [(Action, &str, &str, &str); 2] = [
         Action::LoadSamples,
         "Relational sample",
         "SQLite workshop → PostgreSQL catalogue",
-        "Problems, matching, a load plan and draft SQL",
+        "Schema checks, matching, a load plan and draft SQL",
     ),
     (
         Action::LoadTimeseriesSamples,
@@ -46,7 +46,7 @@ const SAMPLES: [(Action, &str, &str, &str); 2] = [
 /// The four things Schema Bridge does, shown on the first screen.
 const PIPELINE: [(&str, &str, &str); 4] = [
     ("load", "Choose two schemas", "A source and a target export"),
-    ("problems", "Analyse", "Problems inside each database"),
+    ("problems", "Analyse", "Schema checks on each database"),
     ("matching", "Match", "Tables and columns, reviewed by you"),
     ("plan", "Plan", "Load order, draft SQL and a report"),
 ];
@@ -75,13 +75,13 @@ pub fn LoadStage(
     let finding_count = d.findings.read().len();
     let next = if both {
         Some((
-            "Next: review the problems and the matching",
-            "Start with the problems inside each database, then check how the tables were matched. The report sums everything up.",
+            "Next: review the schema checks and the matching",
+            "Start with the schema checks, then see how the tables were matched. The report sums everything up.",
         ))
     } else if any {
         Some((
             "Next: add the other database",
-            "The problems of the loaded database are ready. Matching, the plan and the report need both databases.",
+            "The schema checks of the loaded database are ready. Matching, the plan and the report need both databases.",
         ))
     } else {
         None
@@ -93,7 +93,7 @@ pub fn LoadStage(
                 div { class: "hero-text",
                     h2 { "Compare two database schemas and plan the integration" }
                     p { class: "lead",
-                        "Schema Bridge reads a structure export of each database, finds problems in each, matches their tables and columns, and plans how to bring one into the other. Everything stays on this computer."
+                        "Schema Bridge reads a structure export of each database, checks each schema for integration risks, matches their tables and columns, and plans how to bring one into the other. Everything stays on this computer."
                     }
                     div { class: "start-own",
                         h3 { "Use your own databases" }
@@ -205,7 +205,7 @@ pub fn LoadStage(
                 div { class: "next-actions",
                     if finding_count > 0 {
                         button { class: "btn primary", onclick: move |_| open_problems.call(()),
-                            "Review {finding_count} problems"
+                            "Review {finding_count} schema findings"
                             Icon { name: "arrow", size: 15 }
                         }
                     }

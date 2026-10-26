@@ -14,12 +14,12 @@ tickets). Both contain the same sections:
 
 1. **Summary**: tables (matched, uncertain, changed by hand, no place, staying),
    columns (mapped by type result, not mapped, never copied, uncertain,
-   changed by hand), problems by severity per database and for fitting them
-   together.
+   changed by hand), findings by severity per database and for the
+   integration.
 2. **Databases**: system, tables, columns, links, primary keys, estimated rows.
 3. **Unresolved items**: fix first, decide, review, draft SQL.
 4. **Integration risks**: blocking and high integration issues with what to do.
-5. **Problems found**: every finding with severity, database, rule, object,
+5. **All findings**: every finding with severity, database, rule, object,
    explanation and fix.
 6. **Mapping**: every table decision with its reason, and for each matched
    table every column with target, type result and explanation, reason and
@@ -31,15 +31,15 @@ tickets). Both contain the same sections:
 10. **Draft SQL**: the whole script, with the safety note.
 11. **Assumptions and limitations**: what was and was not compared.
 
-With only one database loaded the report contains the problems and says
+With only one database loaded the report contains its schema findings and says
 what is missing. To see an example without the app:
 `cargo run -p schema-bridge-core --example sample_report > report.html`.
 
 ## Findings
 
 - **Save as CSV**: one finding per row: Severity, Database, Area, Rule,
-  Object, Problem, What it means, What to do. All findings: inside each
-  database and in fitting them together.
+  Object, Finding, What it means, What to do. All findings: each schema's,
+  and the integration's (Database column *Integration*).
 - **Copy as table**: the same columns, tab-separated, to paste into a
   spreadsheet or ticket.
 

@@ -36,6 +36,19 @@ releases are tagged by the repository owner.
 - Clearer badges (the Sample data badge no longer looks like a link), and a
   short explanation on hover for each panel figure.
 
+### Terminology
+
+- Stage 2 is now **Schema checks** (was *Problems*). Everything Schema
+  Bridge reports is a **finding**: a schema-level risk or incompatibility
+  read from the structure exports, not an error in a running database.
+  Stage 4 stays **Integration issues**; its findings are shown with the
+  origin **Integration** (was *Fitting them together*).
+- The report's *Problems found* section is now **All findings**, and the
+  findings CSV and report column *Problem* is now **Finding**.
+- `docs/rules.md` has a Terminology section and marks the Low/Info speed,
+  naming, description and content findings as notes that can make an
+  integration slower or harder, not blockers.
+
 ### Fixed
 
 - The message for a file that is not an export now names the help section

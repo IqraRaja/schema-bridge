@@ -78,13 +78,13 @@ pub fn summary_cards(s: &Summary, both: bool) -> Vec<SummaryData> {
     let p = |sev: Severity| s.total_problems(sev);
     let total: usize = Severity::ALL.iter().map(|sev| p(*sev)).sum();
     out.push(SummaryData {
-        title: "Problems",
+        title: "Findings",
         icon: "problems",
         headline: total.to_string(),
         caption: if both {
-            "inside each database and in fitting them together".into()
+            "in the two schemas and in the integration".into()
         } else {
-            "found in the loaded database".into()
+            "in the loaded schema".into()
         },
         segments: vec![
             seg("blocking", p(Severity::Blocking), "error"),

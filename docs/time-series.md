@@ -3,7 +3,7 @@
 Schema Bridge can compare a time-series schema (InfluxDB first) with a
 relational one or with another time-series schema. It uses the same workflow,
 screens and neutral model as relational databases. This page explains what is
-read, how the time-series concepts are treated, which problems are reported
+read, how the time-series concepts are treated, which findings are reported
 and what Schema Bridge does not do.
 
 The design decision is [decision 24](decisions.md#24-time-series-schemas-in-the-neutral-model-influxdb-first).
@@ -82,7 +82,7 @@ All of these only read. **Neither recipe has been run on a real server yet**
 (the load screen says so). They read metadata and, for Flux, the last point
 of each series; they never write.
 
-## Problems inside a time-series schema
+## Schema checks on a time-series schema
 
 These rules run only on measurements (area *Time series*):
 
@@ -171,7 +171,7 @@ What you see (checked by `crates/schema-bridge-core/tests/timeseries.rs`):
 
 - **Load:** a *Time series* badge; 3 measurements, 6 tags, 9 fields and 622
   series; *Retention plant: 30 days*.
-- **Problems:** in Plant, `TS-FIELD-TYPE-CONFLICT` (pump.speed_rpm),
+- **Schema checks:** in Plant, `TS-FIELD-TYPE-CONFLICT` (pump.speed_rpm),
   `TS-FIELD-TYPE-UNKNOWN` (boiler.firmware_version) and `TS-UNSIGNED-FIELD`
   (energy_meter.total_kwh). No relational rules fire.
 - **Matching:**

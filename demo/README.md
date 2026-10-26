@@ -35,9 +35,10 @@ data can be loaded into the catalogue?
 | `operator` | `person` | The workshop stores one full name; the catalogue needs first and last name |
 | `booking` | none | Operational data that stays in the workshop |
 
-## Deliberate problems
+## Deliberate flaws
 
-The demo contains problems on purpose, so every kind of finding has an example.
+The demo contains schema flaws on purpose, so every kind of finding has an
+example.
 
 In **Workshop**:
 
@@ -53,10 +54,11 @@ In **Catalogue**:
 - `asset.start` is stored without a time zone, `asset."end"` with one.
 - `person.orcid` identifies a person but has no unique rule.
 
-All of these are reported on the **Problems** screen, together with smaller
-findings such as links without an index. Problems in fitting the two databases
-together (for example the missing asset type, or the operator's single full
-name against first and last name) are on the **Integration issues** screen.
+All of these are reported on the **Schema checks** screen, together with
+smaller findings such as links without an index. Issues in fitting the two
+databases together (for example the missing asset type, or the operator's
+single full name against first and last name) are on the **Integration
+issues** screen.
 
 ## Recreating the files
 

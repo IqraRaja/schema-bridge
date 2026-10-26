@@ -1,4 +1,4 @@
-//! The "Problems" stage: what the checks found inside each database, with
+//! The "Schema checks" stage: the findings about each schema, with
 //! search and filters by database, severity and rule type. Follows the
 //! prototype's Problems tab. The findings and the filter logic come from
 //! the core library; this file only prepares strings and places them.
@@ -217,9 +217,9 @@ pub fn Problems(
     let head = rsx! {
         section { class: "page-head",
             div {
-                h2 { "Problems" }
+                h2 { "Schema checks" }
                 p { class: "lead",
-                    "Structural problems inside each database, found from the structure export alone. Each one says what it means and what to do. Nothing is changed in your databases."
+                    "Findings about the structure of each schema that can affect the integration, read from the structure export alone. They are not errors in the running database: Schema Bridge never connects to it. Each finding says what it means and what to do."
                 }
             }
         }
@@ -294,7 +294,7 @@ pub fn Problems(
         p { class: "muted shown", role: "status", {status} }
         if cards.is_empty() {
             section { class: "card empty",
-                p { class: "empty-title", "No problems match these filters" }
+                p { class: "empty-title", "No findings match these filters" }
                 div {
                     button { class: "btn secondary", onclick: move |_| filter.set(FindingFilter::default()), "Clear filters" }
                 }

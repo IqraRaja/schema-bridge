@@ -64,7 +64,7 @@ impl Stage {
     fn label(self) -> &'static str {
         match self {
             Stage::Load => "Load schemas",
-            Stage::Problems => "Problems",
+            Stage::Problems => "Schema checks",
             Stage::Matching => "Matching",
             Stage::Integration => "Integration issues",
             Stage::Plan => "Plan",
@@ -77,7 +77,7 @@ impl Stage {
     fn hint(self) -> &'static str {
         match self {
             Stage::Load => "Source and target structure",
-            Stage::Problems => "Checks inside each database",
+            Stage::Problems => "Each schema, checked for integration risks",
             Stage::Matching => "Tables and columns, with overrides",
             Stage::Integration => "What does not fit, in plain words",
             Stage::Plan => "Steps and load order",
@@ -175,7 +175,11 @@ fn open_items(stage: Stage, s: &Summary, sql_available: bool) -> Option<String> 
     match stage {
         Stage::Problems if count("Fix first") > 0 => Some(format!(
             "{} to fix first",
-            plural(count("Fix first"), "blocking problem", "blocking problems")
+            plural(
+                count("Fix first"),
+                "blocking schema finding",
+                "blocking schema findings"
+            )
         )),
         Stage::Matching => {
             let mut parts = Vec::new();
@@ -618,7 +622,7 @@ mod tests {
         let s = summary(&ws, a.as_ref());
         assert_eq!(
             open_items(Stage::Problems, &s, true).as_deref(),
-            Some("1 blocking problem to fix first")
+            Some("1 blocking schema finding to fix first")
         );
         assert_eq!(
             open_items(Stage::Sql, &s, true),

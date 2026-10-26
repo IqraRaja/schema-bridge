@@ -398,7 +398,7 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
         rows.push(r);
     }
     out.push(table(
-        &["Problems", "Blocking", "High", "Medium", "Low", "Info"],
+        &["Findings", "Blocking", "High", "Medium", "Low", "Info"],
         rows,
     ));
 
@@ -509,9 +509,7 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
     if analysis.is_some() {
         out.push(heading(2, "Integration risks"));
         if s.risks.is_empty() {
-            out.push(para(
-                "No blocking or high risks in fitting the two databases together.",
-            ));
+            out.push(para("No blocking or high integration issues."));
         } else {
             out.push(Block::List(
                 s.risks
@@ -531,10 +529,10 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
     }
 
     // Problems.
-    out.push(heading(2, "Problems found"));
+    out.push(heading(2, "All findings"));
     let all = all_findings(ws, analysis);
     if all.is_empty() {
-        out.push(para("No problems found."));
+        out.push(para("No findings."));
     } else {
         out.push(table(
             &[
@@ -542,7 +540,7 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
                 "Database",
                 "Rule",
                 "Object",
-                "Problem",
+                "Finding",
                 "What to do",
             ],
             all.iter()
@@ -728,7 +726,7 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
     step(
         &mut out,
         1,
-        format!("Fix the problems inside {tn}"),
+        format!("Fix the schema findings in {tn}"),
         titles(&plan.fix_target),
         "Nothing serious found.",
     );
@@ -1058,7 +1056,7 @@ mod tests {
             "## Databases",
             "## Unresolved items",
             "## Integration risks",
-            "## Problems found",
+            "## All findings",
             "## Mapping",
             "### machine → asset",
             "## Changes made by hand",
@@ -1099,7 +1097,7 @@ mod tests {
         let (mut ws, _) = sample();
         ws.clear(Side::Target);
         let md = report_markdown(&ws, None);
-        assert!(md.contains("## Problems found"));
+        assert!(md.contains("## All findings"));
         assert!(md.contains("Load both databases"));
         assert!(!md.contains("## Mapping"));
         let s = summary(&ws, None);

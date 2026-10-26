@@ -1,0 +1,8 @@
+# Text files are checked out with LF line endings on every system, so the
+# test fixtures compare equal on Windows too (Git for Windows would otherwise
+# convert them to CRLF).
+* text=auto eol=lf
+
+# A sample export kept byte-for-byte, with the CRLF line endings it was
+# committed with.
+demo/workshop-sqlite.csv -text

@@ -95,8 +95,8 @@ pub fn ReportStage(
                 plural(open, "item", "items")
             ),
             format!(
-                "{} inside a database and {}. See the list below.",
-                plural(fix, "blocking problem", "blocking problems"),
+                "{} and {}. See the list below.",
+                plural(fix, "blocking schema finding", "blocking schema findings"),
                 plural(decide, "open decision", "open decisions")
             ),
         )
@@ -116,7 +116,7 @@ pub fn ReportStage(
         })
         .collect();
     let groups: Vec<UnresolvedGroup> = [
-        ("Fix first", "Blocking problems inside a database"),
+        ("Fix first", "Blocking schema findings"),
         ("Decide", "Needs people who know the data"),
         ("Review", "Uncertain automatic matches"),
         ("Draft SQL", "Open markers in the draft"),
@@ -181,7 +181,7 @@ pub fn ReportStage(
             section { class: "card",
                 div { class: "card-head",
                     h3 { "Integration risks" }
-                    p { class: "muted", "Blocking and high problems in fitting the two databases together." }
+                    p { class: "muted", "Blocking and high integration issues." }
                 }
                 if risks.is_empty() {
                     p { class: "plan-ok", "No blocking or high risks." }

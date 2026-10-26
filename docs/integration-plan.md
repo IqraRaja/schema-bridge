@@ -8,7 +8,7 @@ review. The code is `report::plan_steps`, `plan.rs` (load order) and `sql.rs`
 
 | Step | Contains | Why first |
 | --- | --- | --- |
-| 1. Fix the problems inside the target | Blocking and high findings of the target database | Good data is rejected or stored wrongly by a broken target |
+| 1. Fix the schema findings in the target | Blocking and high findings of the target database | Good data is rejected or stored wrongly by a broken target |
 | 2. Check the data in the source | Blocking and high findings of the source | Missing rules mean bad rows may exist; count them before copying |
 | 3. Make the decisions | Blocking and high integration issues, and source tables with no place | The tool cannot decide these; people who know the data must |
 | 4. Load the tables in this order | The load order (below) | A table can only be loaded after the tables it links to |

@@ -116,7 +116,7 @@ pub fn ExportStage(
         }
     }
     if analysis.is_some() {
-        parts.push(format!("{} in fitting them together", count(None)));
+        parts.push(format!("{} in the integration", count(None)));
     }
     let findings_text = format!(
         "{} findings, one per row with severity, database, rule, object, explanation and what to do: {}.",
@@ -152,7 +152,7 @@ pub fn ExportStage(
         div { class: "export-grid",
             ExportCard {
                 title: "Comparison report",
-                text: "The complete deliverable: summary, problems, every mapping with its type conversion, changes made by hand, the integration plan, the draft SQL, warnings, assumptions and unresolved items. The HTML file opens in any browser and prints to PDF; the Markdown file suits wikis and tickets.",
+                text: "The complete deliverable: summary, findings, every mapping with its type conversion, changes made by hand, the integration plan, the draft SQL, warnings, assumptions and unresolved items. The HTML file opens in any browser and prints to PDF; the Markdown file suits wikis and tickets.",
                 button {
                     class: "btn primary",
                     onclick: move |_| download_text(&html_name, "text/html", html.clone()),

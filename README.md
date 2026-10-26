@@ -1,9 +1,9 @@
 # Schema Bridge
 
-Schema Bridge compares the structure of two databases, finds problems in each,
-matches their tables and columns, and plans how to bring one into the other:
-in which order to load the tables, what has to be decided first, and a draft
-SQL script for a test load.
+Schema Bridge compares the structure of two databases, checks each schema for
+integration risks, matches their tables and columns, and plans how to bring
+one into the other: in which order to load the tables, what has to be decided
+first, and a draft SQL script for a test load.
 
 It works from a **structure export** of each database (tables, columns, keys,
 links, indexes) that you make with one read-only query. It never connects to
@@ -31,7 +31,7 @@ result into a plan people can review.
 | Stage | What you do |
 | --- | --- |
 | 1. **Load schemas** | Add the export of the *source* (the database you bring in) and the *target* (the one that receives it), or try the built-in sample schemas. |
-| 2. **Problems** | Review problems inside each database (20 rules: missing keys, links to the wrong table, unchecked links, duplicates, time zones, secrets…). Search and filter by database, severity and rule. |
+| 2. **Schema checks** | Review the findings about each schema that can affect the integration (20 rules: missing keys, links to the wrong table, unchecked links, duplicates, time zones, secrets…). Search and filter by database, severity and rule. |
 | 3. **Matching** | See which source table goes into which target table and every column's match, with the reason and confidence. Search, filter (matched, unmatched, uncertain, changed by you), accept, change or remove any match. Teach synonyms with the word list. |
 | 4. **Integration issues** | What does not fit, in plain words: required columns with no source, relationships that do not line up, duplicates a unique column would reject, type risks. |
 | 5. **Plan** | Six steps: fix the target, check the source, make the decisions, the load order, the test load, verification. |
@@ -42,7 +42,7 @@ result into a plan people can review.
 | | |
 | --- | --- |
 | ![First start: what Schema Bridge does, and the sample schemas](docs/images/screen-start.png) | ![The comparison report](docs/images/screen-report.png) |
-| ![Matching: reasons, confidence and type conversions](docs/images/screen-matching-columns.png) | ![Problems with search and filters](docs/images/screen-problems.png) |
+| ![Matching: reasons, confidence and type conversions](docs/images/screen-matching-columns.png) | ![Schema checks with search and filters](docs/images/screen-problems.png) |
 | ![Load, dark theme](docs/images/screen-load-dark.png) | ![Draft SQL, dark theme](docs/images/screen-draft-sql-dark.png) |
 
 ## Quick start
@@ -103,7 +103,7 @@ More: [docs/security-privacy.md](docs/security-privacy.md).
 - [Import formats](docs/import-formats.md): the export files and how to make them.
 - [Database systems](docs/databases.md): what is recognised, importable, planned; time-series concepts.
 - [Time series](docs/time-series.md): InfluxDB schemas, the time-series export, rules, retention, precision, SQL.
-- [Problem detection rules](docs/rules.md): every rule with its severity and meaning.
+- [Schema checks and integration rules](docs/rules.md): terminology, and every rule with its severity and meaning.
 - [Matching](docs/matching.md): how tables and columns are matched, confidence, the word list.
 - [Type compatibility](docs/type-compatibility.md): the five conversion levels with examples.
 - [Integration plan and draft SQL](docs/integration-plan.md): the six steps, load order, SQL limits and safety.
@@ -127,7 +127,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo clippy -p schema-bridge-app --target wasm32-unknown-unknown -- -D warnings
 ```
 
-The tests cover import, type recognition, every problem rule, matching,
+The tests cover import, type recognition, every rule, matching,
 filters, manual overrides, integration findings, load order, draft SQL, the
 report, the exports, the saved comparison file and time-series schemas
 (import, rules, matching, SQL, the InfluxDB → PostgreSQL sample). Parity tests compare the
