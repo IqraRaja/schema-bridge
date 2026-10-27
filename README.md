@@ -1,9 +1,19 @@
 # Schema Bridge
 
-Schema Bridge compares the structure of two databases, checks each schema for
-integration risks, matches their tables and columns, and plans how to bring
-one into the other: in which order to load the tables, what has to be decided
-first, and a draft SQL script for a test load.
+Schema Bridge is a **schema analysis, compatibility assessment and
+migration/integration planning tool**. It compares the structure of a source
+and a target database and takes you through:
+
+source and target schemas → analysis → findings and risks → reviewed
+mappings → open decisions → integration or migration plan → draft SQL
+(optional)
+
+It checks each schema for integration risks, suggests table and column
+mappings for you to review, shows what does not fit and what people still
+have to decide, and plans the order of a test load. It **does not migrate
+data**, does not choose the target design or resolve design decisions for
+you, and does not guarantee that a plan is fit for production: the plan and
+the draft SQL are starting points for review and a test load on a copy.
 
 It works from a **structure export** of each database (tables, columns, keys,
 links, indexes) that you make with one read-only query. It never connects to
@@ -116,6 +126,7 @@ More: [docs/security-privacy.md](docs/security-privacy.md).
 - [Architecture](docs/architecture.md): crates, modules, data flow, extension points.
 - [Adding a database system](docs/adding-a-database.md)
 - [Contributing](CONTRIBUTING.md): development setup, checks, tests, conventions.
+- [How Schema Bridge is developed](docs/development-process.md): specification, plan and milestones, decisions, architecture, testing, CI/CD and releases in one overview.
 - [Decisions](docs/decisions.md), [specification](docs/specification.md), [development plan](docs/development-plan.md)
 - [Changelog](CHANGELOG.md)
 

@@ -33,6 +33,14 @@ use views::LoadStage;
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 fn main() {
+    // The desktop window opens without the default menu bar. Only compiled
+    // with the `desktop` feature; the web build launches as before.
+    #[cfg(feature = "desktop")]
+    dioxus::LaunchBuilder::new()
+        .with_cfg(dioxus::desktop::Config::new().with_menu(None))
+        .launch(App);
+
+    #[cfg(not(feature = "desktop"))]
     dioxus::launch(App);
 }
 

@@ -1,7 +1,9 @@
 # Integration plan and draft SQL
 
 The *Plan* and *Draft SQL* stages turn the comparison into work people can
-review. The code is `report::plan_steps`, `plan.rs` (load order) and `sql.rs`
+review. They support the people who plan an integration or migration; they
+do not perform it, do not choose the target design, and are not a migration
+ready for production. Schema Bridge never runs the SQL it drafts. The code is `report::plan_steps`, `plan.rs` (load order) and `sql.rs`
 (draft SQL) in `crates/schema-bridge-core/src/`.
 
 ## The six steps

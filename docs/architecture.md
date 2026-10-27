@@ -66,6 +66,12 @@ The workspace's default member is the core, so `cargo test` and
 
 ## The application
 
+The application is built for the web by default (feature `web`, WebAssembly).
+The feature `desktop` builds it as a Dioxus desktop window instead; that
+window opens without the default menu bar, configured in `main.rs` behind
+`#[cfg(feature = "desktop")]` ([decision 28](decisions.md#28-desktop-window-without-the-default-menu-bar)).
+The web build compiles no desktop code.
+
 | File | Screen or role |
 | --- | --- |
 | `main.rs` | Shell: top bar, workflow stepper, stage switching, theme |
@@ -75,7 +81,8 @@ The workspace's default member is the core, so `cargo test` and
 | `problems.rs` | Schema checks stage; shared finding cards and filters |
 | `matching.rs` | Matching stage: table list, detail, column grid, word list |
 | `integration.rs`, `plan.rs`, `report.rs`, `export.rs` | The other stages |
-| `browser.rs` | Clipboard and downloads (local only) |
+| `browser.rs` | Clipboard, downloads, notices, theme memory, stray-drop guard (local only) |
+| `feedback.rs` | Confirmations before discarding work, and the notices |
 | `icons.rs` | Inline line icons (no external requests) |
 | `assets/main.css` | The design system: tokens, components, themes, responsive rules |
 

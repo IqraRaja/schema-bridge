@@ -454,6 +454,8 @@ fn the_report_shows_measurements_tags_fields_and_retention() {
         "| Series | 622 | – |",
         "| Retention | plant: 30 days | – |",
         "nanosecond precision",
+        "it does not choose the design",
+        "TimescaleDB",
         "## Draft SQL",
         "CREATE TABLE staging.boiler",
     ] {

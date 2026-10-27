@@ -26,7 +26,7 @@ The file-based app is usable after week 12 (release 0.1); direct connections arr
 
 ## Progress
 
-*Updated 24 October 2026 (milestone 8).*
+*Updated 27 October 2026 (after release 0.1.0).*
 
 The work is delivered in small milestones, each checked with `cargo fmt`,
 `cargo check` and `cargo test` before the next one starts. They map onto the
@@ -74,6 +74,22 @@ step with the implementation.
 | 9 | Relational adapters: a separate MariaDB entry where it differs from MySQL; run the MySQL, SQL Server and Oracle export queries on real servers and fix what they show | Planned |
 | 10 | Documentation set (below), with screenshots, completed and checked by following it on a clean machine for Windows, macOS and Linux | Planned; parts are written with each milestone |
 
+**After release 0.1.0 (towards 0.2.0)**
+
+Release 0.1.0 was tagged on 24 October 2026 (`v0.1.0`). The work since then
+is in the [changelog](../CHANGELOG.md) under *Unreleased* and in the
+decisions from 25 on.
+
+| Step | Content | State |
+| --- | --- | --- |
+| CI-1 | GitHub Actions: format, check, tests and Clippy for the core library; WebAssembly check and Clippy; the `dx` release build | Done |
+| UI-1 | Workflow navigation and feedback: readiness built from the report's counts, Previous/Next, confirmations before discarding work, notices for saved files and copies, remembered theme | Done |
+| UI-2 | Loading experience: drag and drop onto the panels, start screen with the two samples, actionable error card, reading state, clearer badges and figures | Done |
+| Terminology | Stage 2 renamed *Schema checks*; everything reported is a *finding* (decision 25) | Done |
+| CI-2 | Core tests on Linux, macOS and Windows; application tests in CI; pull requests into `develop` and `main`; web build kept as a workflow artifact; release workflow with a start check and checksums; LF line endings (decision 26) | Done |
+| Positioning | Schema Bridge presented as a schema analysis, compatibility and migration/integration planning tool that does not migrate data; time-series model decisions named in the Plan and the report; desktop window without the default menu bar; releases only from `main` (decisions 26–28) | Done |
+| Later | Candidates for 0.2.0, not yet scheduled in detail: a clearer adapter boundary, the export queries run on real servers (milestone 9), more integration safety checks, Excel export, schema diagrams, further interface work | Planned |
+
 Open items from earlier milestones remain: the FR-01 decision, Excel and
 HTML exports, SQL for targets other than PostgreSQL, and listing the links
 that form a cycle. CSV staging is now generated for source systems without a
@@ -101,8 +117,9 @@ instructions on clean machines (milestone 10).
   At the owner's request the application shell was built early so the
   workflow can be reviewed in the browser, and each following milestone adds
   one part of the engine together with its screen.
-- **Phase 0 items not done yet:** CI and lint setup. The sample databases
-  exist as files with their SQL (`demo/`) instead of a generator crate.
+- **Phase 0:** CI and lint setup came after release 0.1.0 (CI-1, CI-2). The
+  sample databases exist as files with their SQL (`demo/`) instead of a
+  generator crate.
 - **Phase 3 (direct connections)** depends on the open decision about FR-01;
   see [Where the implementation currently differs](specification.md#where-the-implementation-currently-differs).
 

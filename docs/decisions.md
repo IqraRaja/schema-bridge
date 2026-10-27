@@ -421,3 +421,63 @@ time silently replaces the earlier one.
   source row has an ID to keep; a point has none (its identity is tags +
   time, covered by `MAP-TS-SERIES-KEY`), so the rule skips measurements.
 
+
+### 25. "Finding" as the general term; stage 2 is "Schema checks"
+
+After release 0.1.0. Reviewers read "Problems inside each database" as
+operational trouble in a running database. Everything Schema Bridge reports
+is now a **finding**: a schema-level risk or incompatibility read from the
+structure exports. Stage 2 is **Schema checks** (findings about one schema),
+stage 4 stays **Integration issues** (findings about fitting the source into
+the target, origin *Integration*), and **integration risk** means a blocking
+or high integration issue. The Low/Info speed, naming, description and
+content findings are described as notes that can make an integration slower
+or harder, not as blockers. Rule ids, rules, severities and logic are
+unchanged. See [rules.md](rules.md#terminology).
+
+### 26. Branches, CI and releases
+
+- **Branches:** feature branches → pull request into `develop` (integration)
+  → pull request into `main` (stable) → release tag on `main`.
+- **CI** (`.github/workflows/ci.yml`) runs on pushes to `develop` and `main`
+  and on pull requests into either: format, check and Clippy on Linux; the
+  core tests on Linux, macOS and Windows; the application's tests,
+  WebAssembly check and Clippy; the `dx` release build, kept as a workflow
+  artifact on pushes. Nothing is deployed.
+- **Releases** (`.github/workflows/release.yml`) start when a GitHub release
+  is published, or by hand with a tag. The tag must be on `main`. The web
+  build is attached only after a headless browser has started it, together
+  with `SHA256SUMS.txt`. Only the job that attaches the files may write to
+  the repository.
+- **Line endings:** text files are checked out with LF everywhere
+  (`.gitattributes`), because the parity fixtures failed on Windows checkouts
+  with CRLF. One sample export committed with CRLF is kept byte-for-byte.
+- Required checks before merging are a GitHub branch-protection setting
+  made by the repository owner, not a file in the repository.
+- The CI of another Dioxus project (Cantara) was reviewed as an example;
+  ideas were taken over (OS matrix, artifacts, release start check,
+  checksums, narrow permissions), its files were not copied.
+
+### 27. An analysis and planning tool, not a migration tool
+
+Schema Bridge is a schema analysis, compatibility assessment and
+migration/integration planning tool. It analyses structure exports, reports
+findings and integration incompatibilities, suggests mappings for review,
+lists open decisions, plans a test load and drafts SQL. It does not move
+data, does not choose the target architecture, does not resolve design
+decisions by itself and does not claim that a plan is fit for production.
+The start screen, README, user guide, report and plan say so.
+
+For time series this matters most: representing an InfluxDB model in a
+relational database (or the reverse) is a modelling decision. The Plan stage
+and the report name the decisions that stay with people (target tables, tags
+and fields, time representation, indexes, storage and retention,
+performance, compression, time-series extensions such as TimescaleDB as one
+option among others). No automatic modelling or migration logic was added.
+
+### 28. Desktop window without the default menu bar
+
+The Dioxus desktop window (feature `desktop`) opens without the default menu
+bar: `dioxus::desktop::Config::new().with_menu(None)` in `main`, behind
+`#[cfg(feature = "desktop")]`. The web build (the default) launches as
+before and does not compile any desktop code.

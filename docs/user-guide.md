@@ -1,5 +1,11 @@
 # User guide
 
+Schema Bridge analyses the structure of two databases and helps you plan an
+integration or migration: it reports findings and incompatibilities,
+suggests mappings for you to review, lists the decisions that are still
+open, and drafts a plan and SQL for a test load. It never moves data, and the
+design decisions stay with you.
+
 This guide walks through a complete comparison with the built-in sample
 schemas, then explains each stage in detail. Start the application first
 ([installation](installation.md)) and open http://localhost:8080.
@@ -73,12 +79,18 @@ InfluxDB bucket, and **Readings**, a PostgreSQL database for its sensor data.
    - `readings` has no unique rule on (site, unit_id, recorded_at):
      `MAP-TS-SERIES-KEY`, to review, not added automatically.
    - Both mappings get `MAP-TS-RETENTION`, because Plant keeps only 30 days.
-5. **Draft SQL.** CSV staging tables for `boiler` and `pump` with `\copy`
-   commands, then the inserts. Press **⇄ Swap** to make InfluxDB the
-   target: the Draft SQL stage then explains that no SQL or line protocol is
-   generated.
+5. **Plan.** Step 3 lists the open decisions and, below them, the **design
+   decisions that stay with you**: the target tables, tags and fields, how
+   time is stored, indexes, storage and retention, performance and
+   compression, and whether a time-series extension such as TimescaleDB fits.
+   Schema Bridge shows the differences; it does not choose the model.
+6. **Draft SQL.** CSV staging tables for `boiler` and `pump` with `\copy`
+   commands, then the inserts: a draft for one possible model (the sample's
+   hand-written target), not a recommendation. Press **⇄ Swap** to make
+   InfluxDB the target: the Draft SQL stage then explains that no SQL or line
+   protocol is generated.
 
-Details: [time series](time-series.md).
+Details: [time series](time-series.md#design-decisions-that-stay-with-you).
 
 ## The stages in detail
 

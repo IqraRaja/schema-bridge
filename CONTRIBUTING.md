@@ -45,14 +45,23 @@ and on a narrow window if it touches the UI.
   Linux, macOS and Windows; the application's tests, WebAssembly check and
   Clippy; and the release build with `dx`. Builds of `develop` and `main` are
   kept as a downloadable workflow artifact for 14 days (not deployed).
-- **Releases are tagged from `main`** (`v0.2.0`, …) by publishing a GitHub
-  release for the tag. `.github/workflows/release.yml` then builds the web
-  application, checks in a headless browser that it starts, and attaches
-  `schema-bridge-web-<tag>.zip` and `SHA256SUMS.txt` to the release. To
-  rebuild the assets of an existing release, run the workflow by hand with
-  its tag. The archive is a static site: serve the folder from the root of a
-  web server (for example `python3 -m http.server`); opening `index.html`
-  directly from disk does not work.
+- **Releases are tagged from `main`** (`v0.2.0`, …). The order is: merge
+  `develop` into `main` through a pull request with passing CI, update the
+  version and the changelog on that path, then publish a GitHub release whose
+  tag points at a commit on `main`. `.github/workflows/release.yml` refuses a
+  tag that is not on `main`, builds the web application, checks in a headless
+  browser that it starts, and attaches `schema-bridge-web-<tag>.zip` and
+  `SHA256SUMS.txt` to the release. To rebuild the assets of an existing
+  release, run the workflow by hand with its tag. The archive is a static
+  site: serve the folder from the root of a web server (for example
+  `python3 -m http.server`); opening `index.html` directly from disk does not
+  work.
+- **GitHub settings, not files:** GitHub runs a workflow by hand, and for a
+  published release, only from a workflow file that exists on the branch or
+  tag concerned (for manual runs: the default branch, `main`). Requiring CI
+  to pass before merging is a branch-protection setting in the repository
+  (Settings → Branches) for `main` and `develop`, with the CI jobs as
+  required checks.
 - Text files are checked out with LF line endings on every system
   (`.gitattributes`), so the tests pass on Windows too.
 

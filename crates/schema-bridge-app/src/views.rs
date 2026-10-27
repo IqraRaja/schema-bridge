@@ -39,7 +39,7 @@ const SAMPLES: [(Action, &str, &str, &str); 2] = [
         Action::LoadTimeseriesSamples,
         "Time-series sample",
         "InfluxDB plant → PostgreSQL readings",
-        "Measurements, tags, fields and retention",
+        "Measurements, tags, fields, retention and the model decisions",
     ),
 ];
 
@@ -93,7 +93,7 @@ pub fn LoadStage(
                 div { class: "hero-text",
                     h2 { "Compare two database schemas and plan the integration" }
                     p { class: "lead",
-                        "Schema Bridge reads a structure export of each database, checks each schema for integration risks, matches their tables and columns, and plans how to bring one into the other. Everything stays on this computer."
+                        "Schema Bridge reads a structure export of each database, checks each schema for integration risks, suggests table and column mappings for you to review, and helps you plan the integration or migration, up to a draft SQL script. It does not move any data, and the design decisions stay with you. Everything stays on this computer."
                     }
                     div { class: "start-own",
                         h3 { "Use your own databases" }

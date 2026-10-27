@@ -132,6 +132,35 @@ The type fit takes the time-series facts into account:
 `MAP-NO-SOURCE-ID` is not reported for measurements. A point has no ID; its
 identity is tags + time, which `MAP-TS-SERIES-KEY` covers.
 
+## Design decisions that stay with you
+
+Moving time-series data into a relational database (or the reverse) is a
+modelling task, not only a mapping. Schema Bridge analyses and highlights the
+measurements, tags, fields, time, retention, possible mappings, type
+incompatibilities and structural differences, and it helps plan the work. It
+does **not** perform the migration and does **not** decide the final
+architecture. For InfluxDB → PostgreSQL, people decide:
+
+- **Target tables:** one table per measurement, one shared table, or another
+  model.
+- **Tags and fields:** which become columns, keys or lookup tables.
+- **Time:** the column type and precision (InfluxDB's nanoseconds are cut to
+  microseconds or less) and the time zone.
+- **Indexes and unique rules,** for example on tags plus time
+  (`MAP-TS-SERIES-KEY` asks for this review; it never adds a rule).
+- **Storage, retention and performance:** how much history to keep, how old
+  rows are removed, partitioning and compression.
+- **Time-series extensions:** for example TimescaleDB, a PostgreSQL-based
+  time-series architecture. It is one possible option, not a requirement and
+  not always the right one.
+
+For a time-series target the decisions are the reverse: which columns become
+tags and which fields, which column is the time, the measurements and the
+retention, and how the data is written (Schema Bridge generates neither SQL
+nor line protocol for it). The *Plan* stage lists these decisions whenever a
+time-series schema is involved, and the report repeats them under
+*Assumptions and limitations*.
+
 ## Draft SQL
 
 - **InfluxDB → PostgreSQL:** the usual draft, with **CSV staging**. No

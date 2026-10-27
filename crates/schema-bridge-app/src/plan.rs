@@ -86,6 +86,38 @@ fn needs_both(go_to_load: EventHandler<()>, what: &str) -> Element {
     }
 }
 
+/// The model decisions a time-series comparison leaves to people: Schema
+/// Bridge shows the differences, but does not choose the target design.
+/// `None` when neither database is a time-series schema.
+fn time_series_design(
+    source_ts: bool,
+    target_ts: bool,
+) -> Option<(&'static str, Vec<&'static str>)> {
+    match (source_ts, target_ts) {
+        (true, false) => Some((
+            "Schema Bridge shows the measurements, tags, fields, time, retention, mappings and type differences, but it does not choose how the time-series data is modelled in the relational target. Decide, with the people who know the data:",
+            vec![
+                "The target tables: one per measurement, one shared table, or another model.",
+                "Tags and fields: which become columns, keys or lookup tables.",
+                "Time: the column type and precision (nanoseconds are cut to microseconds or less) and the time zone.",
+                "Indexes and unique rules, for example on tags plus time.",
+                "Storage, retention and performance: how much history to keep, partitioning, compression.",
+                "Whether a time-series extension fits, for example TimescaleDB on PostgreSQL. It is one option, not a requirement.",
+            ],
+        )),
+        (_, true) => Some((
+            "Schema Bridge shows how the columns line up with the measurement, but it does not choose the time-series design. Decide, with the people who know the data:",
+            vec![
+                "Which columns become tags (they identify a series) and which become fields.",
+                "Which column holds the time, and its precision.",
+                "The measurements and the bucket's retention.",
+                "How the data is written: Schema Bridge generates no SQL and no line protocol for a time-series target.",
+            ],
+        )),
+        _ => None,
+    }
+}
+
 #[component]
 pub fn PlanStage(
     workspace: Signal<Workspace>,
@@ -115,6 +147,9 @@ pub fn PlanStage(
     };
     let steps = plan_steps(&ws, analysis);
     let sql_available = ws.sql_available();
+    let is_ts =
+        |x: &Option<schema_bridge_core::Schema>| x.as_ref().is_some_and(|x| x.is_time_series());
+    let design = time_series_design(is_ts(&ws.source.schema), is_ts(&ws.target.schema));
     drop(ws);
     let fix_target = items(&steps.fix_target);
     let check_source = items(&steps.check_source);
@@ -196,6 +231,17 @@ pub fn PlanStage(
                 title: "Make the decisions",
                 hint: "Schema Bridge cannot decide these; they need the people who know the data.",
                 ItemList { items: decisions, empty: "No open decisions." }
+                if let Some((lead, points)) = design {
+                    div { class: "callout", role: "note",
+                        b { "Design decisions that stay with you. " }
+                        {lead}
+                        ul {
+                            for p in points {
+                                li { key: "{p}", {p} }
+                            }
+                        }
+                    }
+                }
             }
             Step {
                 number: 4,
@@ -399,5 +445,30 @@ pub fn SqlStage(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn time_series_comparisons_name_the_design_decisions() {
+        assert!(time_series_design(false, false).is_none());
+        let (lead, points) = time_series_design(true, false).unwrap();
+        assert!(lead.contains("does not choose"));
+        for topic in [
+            "target tables",
+            "Tags and fields",
+            "Time:",
+            "Indexes",
+            "compression",
+            "TimescaleDB",
+        ] {
+            assert!(points.iter().any(|p| p.contains(topic)), "{topic}");
+        }
+        assert!(points.iter().any(|p| p.contains("not a requirement")));
+        let (_, points) = time_series_design(false, true).unwrap();
+        assert!(points.iter().any(|p| p.contains("tags")));
     }
 }

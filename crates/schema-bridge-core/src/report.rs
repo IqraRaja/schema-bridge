@@ -334,8 +334,9 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
     let mut out = vec![
         heading(1, format!("Schema Bridge report: {sn} → {tn}")),
         para(
-            "This report compares the structure of two databases and plans how to bring the source into the target. \
-             It was produced from structure exports only: no table contents were read and no database was connected. \
+            "This report assesses how the structure of the source fits the target and supports planning the integration or migration: \
+             findings, suggested mappings, open decisions, a load order and a draft SQL script. \
+             It was produced from structure exports only: no table contents were read, no database was connected and no data was moved. \
              Findings are risks seen in the structure; confirm them on the data before acting.",
         ),
     ];
@@ -834,6 +835,7 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
         "Matches come from names, the word list, descriptions and types; they are suggestions to review, not facts.".into(),
         "Times without a time zone are assumed to need one when the target stores it; the draft asks which zone they were recorded in.".into(),
         "The draft SQL is written for a PostgreSQL target; for other systems it is a column-by-column guide.".into(),
+        "Schema Bridge does not migrate data and does not choose the target design. The plan and the draft SQL support the people who decide; they are not a migration ready for production.".into(),
     ]));
     if [&ws.source.schema, &ws.target.schema]
         .iter()
@@ -843,6 +845,7 @@ pub fn report_blocks(ws: &Workspace, analysis: Option<&Analysis>) -> Vec<Block> 
             "Time-series schemas come from a schema export (measurements, tags, fields, field types, series counts and retention), not from the data. A tag combination plus the time identifies a point in InfluxDB; Schema Bridge does not treat it as a primary key and does not add one.".into(),
             "InfluxDB times have nanosecond precision; relational time types keep microseconds or less.".into(),
             "Retention is shown as exported. A relational target has no equivalent setting, so old rows stay until deleted.".into(),
+            "How a time-series model is represented in the other database is a design decision for people: the target tables, how tags and fields become columns, how time is stored, indexes, storage, retention, performance, compression, and whether a time-series extension such as TimescaleDB fits. Schema Bridge shows the differences; it does not choose the design.".into(),
         ]));
     }
     out
@@ -1072,6 +1075,8 @@ mod tests {
         assert!(md.contains("Potential information loss") || md.contains("Incompatible"));
         assert!(md.contains("-- COMMIT;"));
         assert!(md.contains("made-up sample schemas"));
+        assert!(md.contains("does not migrate data and does not choose the target design"));
+        assert!(md.contains("no data was moved"));
     }
 
     #[test]

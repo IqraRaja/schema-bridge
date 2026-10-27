@@ -49,6 +49,22 @@ releases are tagged by the repository owner.
   naming, description and content findings as notes that can make an
   integration slower or harder, not blockers.
 
+### Purpose and time series
+
+- The start screen, README, user guide, report and plan describe Schema
+  Bridge as a schema analysis, compatibility assessment and
+  migration/integration planning tool: it does not migrate data, does not
+  choose the target design and does not claim a plan is ready for production.
+- For time-series schemas the Plan stage (step 3) and the report list the
+  design decisions that stay with people: target tables, tags and fields,
+  time representation, indexes, storage and retention, performance,
+  compression, and time-series extensions such as TimescaleDB as one option.
+
+### Desktop
+
+- The desktop build (feature `desktop`) opens its window without the
+  default menu bar. The web build is unchanged.
+
 ### Fixed
 
 - The message for a file that is not an export now names the help section
